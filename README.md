@@ -1,4 +1,4 @@
-# Many analysts
+# Many analysts  :hatched_chick:
 
 ## **Overview**
 
