@@ -1,4 +1,5 @@
-1. We read the dataset description and metadata
+### PROCEDURE
+1. Read the dataset description and metadata
 1. Decided upon the following analyses and procedures
 1. Explored the data distributions and correlations
 1. Visualized the raw data
