@@ -1,0 +1,9 @@
+1) Download these data and analyse them to find the answer to the question "To what extent is the growth of nestling blue tits (Cyanistes caeruleus) influenced by competition with siblings?" using what ever methods you feel are most appropriate.
+
+2) Write up a summary of your methods as if you were writing it for publication in a journal.
+
+3) When you have completed your analysis, email Tim Parker (parkerth@whitman.edu) and Hannah Fraser (hannahsfraser@gmail.com) to let us know.
+
+4) Fill in the survey that we will email you asking a) about some of your analytic decisions, b) to upload the description of your methods, and c) to upload all of your analysis files (e.g. R code, reformatted data, excel spreadsheet, SPSS syntax, step by step detailed instructions on all the settings you selected in your analytic software of choice)
+
+5) Look over the manuscript as we write it up - you are invited to be a co-author but can opt out if you would prefer.
