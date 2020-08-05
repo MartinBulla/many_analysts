@@ -5,13 +5,16 @@
 *.pdf
 *.ini
 *.log
+*.tex
 *.orig
 *.pyc
+*.enl
 *.Rcheck/
 .DS_Store
 ._.DS_Store
 freeze/
 .git/
+many_analysts.Data/
 .gitattributes
 .here
 .httr-oauth
