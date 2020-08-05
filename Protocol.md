@@ -10,12 +10,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 We have read the data description and metadata provided by the coordinators (https://osf.io/34fzc/) and **A PRIORY** decided upon the following analyses and procedures to answer:
 
-#  Key question: 
+# Key question: 
 "To what extent is the growth of nestling blue tits (Cyanistes caeruleus) influenced by competition with siblings?" 
 
 # 1. DATA EXPLORATION and ANALITICAL DECESION
 - distribution of hatching dates and brood sizes between treatment categories to see whether the design was balanced and thus controlling for environmental and social factors (like differences in hatch date) are not necessary; if well matched across treatments (90%) we will attempt analyses with nest pairs (reduced/increased) or triads (reduced/increase/unmanipulated), i.e. no need to control for differences between reared and hatched nest; if the match is <90% we will control the models for the age differences between the reared and hatch nests
 - is it possible to pair the treatments with control (to construct enlarged/reduced/unmanipulated "triads"; if not, controls will not be paired within analyses
+- distribution of data across days within season to find out whether controlling for multiple sampling within a day of each year is necessary. 
 - if we find corr >0.6 between any combination of continuous fixed effects, we check how model results change when each variable is taken out of the model at a time
 - correlation between dependent variables to aid interpretation of the results
 - check distributions and visualize raw data to check for inconsistencies e.g.: 
@@ -55,17 +56,19 @@ We believe that adding or taking four chicks from large broods (12-16 chicks) or
         
 
 ##1) NO GROWTH - mortality
+```r    
     change_chick_# ~ net_rearing_manipulation * rear_Cs_at_start_of_rearing + 
                      brood_sex_ration (only if doable)+ 
                      (1|hatch_year) + (1|rear_area)
-                                            
+```                                           
+
 ##2) SIZE given treatment
 If data allow, we intend to use two types models:
 1. paired/triad nests (reduced, enlarged, non_manipulated) 
 2. all nests individually
 
 Each with and without sex interaction specified as follows:
-    
+```r    
     m0 =  day_14_body_mass/tarsus_length/body_mass_index ~ 
             net_rearing_manipulation * rear_Cs_at_start_of_rearing +
             net_rearing_manipulation * d14_rear_nest_brood_size +
@@ -90,11 +93,11 @@ Each with and without sex interaction specified as follows:
              (1|rear_nest_OH_std) + (1|hatch_year)  +
             (1|rear_nest_breed_ID)  + 
             (1|hatch_mom_Ring) + (1|genetic_dad_ring_)  # DROP the last two if the model does not converge
-
+``` 
     
 We will check with AIC whether models with sex in interaction fit the data better (AICdelta > 5).
 
-#  Decisions based on model outcomes  
+# Decisions based on model outcomes  
 - if model assumptions not met, we adjust the models accordingly (e.g. log-transformation of variables or fitting additional variable visible in the residuals)
 - if year explains a lot of variation we also run models/plot data for each year separately
 
