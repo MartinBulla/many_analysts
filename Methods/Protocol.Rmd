@@ -31,7 +31,7 @@ We have read the data description and metadata provided by the [project coordina
 ## Background
         
 ### Data      
-We believe that adding or taking four chicks from large broods (12-16 chicks) or from small broods (4-5 chicks) makes for two different experiments. Hence, we devided the dataset into two and analyzed those separately. 
+We believe that adding or taking four chicks from large broods (12-16 chicks) or from small broods (4-5 chicks) makes for two different experiments. Hence, we divided the dataset into two and analyzed those separately. 
 
 ###  Dependent variables
 - change_chick_n = change in chick number from start of experiment till day 14 
