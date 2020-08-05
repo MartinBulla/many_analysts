@@ -1,7 +1,7 @@
 ---
 title: "A PRIORI DECIDED PROCEDURE for 'same data different analysts' project"
 author: "Luke J. Eberhart-Phillips and Martin Bulla"
-date: "2020-08-05 15:41:58"
+date: "2020-08-05 16:54:42"
 output:
   html_document: default
   pdf_document: default
@@ -45,7 +45,7 @@ We believe that adding or taking four chicks from large broods (12-16 chicks) or
 - net_rearing_manipulation = essential whether the nest was enlarged or not
 - rear_Cs_at_start_of_rearing   Number of chicks in nest of rearing immediately following experimental chick removals and additions (note that for the control nests this corresponds to 'rear_d0_rear_nest_brood_size' = The number of live chicks in the nest of rearing immediately after eggs have hatched (before chicks were moved among nests for the experiment or to 'd0_hatch_nest_brood_size'; both shall be same for the control nests)
 - d14_rear_nest_brood_size    "In the nest where the chick was reared, the number of live chicks in the nest at day 14 after hatching"
-- chick_sex_molec = Sex of the chick based on molecular genetic analysis. 1 = female; 2 = male.  Not all chicks were sexed. We assign unsexed chicks as U - unknown. We include sex because female and male blue tit chicks grow differently [@Mainwaring2011]
+- chick_sex_molec = Sex of the chick based on molecular genetic analysis. 1 = female; 2 = male.  Not all chicks were sexed. We assign unsexed chicks as U - unknown. We include sex because female and male blue tit chicks grow differently [@Mainwaring2010]
 - brood_sex_ratio = sex ration of chicks in the brood (1 = all females, 0 = all males)
 
 ### Control for genetic and rearing environment 
