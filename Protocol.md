@@ -1,6 +1,7 @@
 ---
-title: "A PRIORY DECIDED PROCEDURE for 'Many EcoEvo Analysts'"
-author: "by Luke J. Eberhart-Phillips and Martin Bulla"
+title: "A PRIORY DECIDED PROCEDURE for 'Many EcoEvo Analysts' project"
+author: "Luke J. Eberhart-Phillips and Martin Bulla"
+date: "2020-08-05 09:30:31"
 output: html_document
 ---
 
