@@ -1,7 +1,7 @@
 ---
 title: "A PRIORI DECIDED PROCEDURE for 'same data different analysts' project"
 author: "Luke J. Eberhart-Phillips and Martin Bulla"
-date: "2020-08-05 15:41:58"
+date: "2020-08-05 16:33:00"
 output:
   html_document: default
   pdf_document: default
