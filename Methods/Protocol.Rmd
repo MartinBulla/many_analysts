@@ -1,5 +1,5 @@
 ---
-title: "A PRIORI DECIDED PROCEDURE for 'Many EcoEvo Analysts' project"
+title: "A PRIORI DECIDED PROCEDURE for 'same data different analysts' project"
 author: "Luke J. Eberhart-Phillips and Martin Bulla"
 date: "2020-08-05 12:16:50"
 output:
