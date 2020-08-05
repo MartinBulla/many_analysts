@@ -1,11 +1,10 @@
-### A PRIORY DECIDED PROCEDURE
+### A PRIORI DECIDED PROCEDURE
 
-We have read the data description and metadata provided by the coordinators (https://osf.io/34fzc/) and *A PRI
-ORY* decided upon the following analyses and procedures to answer:
+We have read the data description and metadata provided by the coordinators (https://osf.io/34fzc/) and *A PRIORI* decided upon the following analyses and procedures to answer:
 
 ##  Key question: "To what extent is the growth of nestling blue tits (Cyanistes caeruleus) influenced by competition with siblings?" 
 
-## 1. DATA EXPLORATION and ANALITICAL DECESION
+## 1. DATA EXPLORATION and ANALYTICAL DECESION
     - distribution of hatching dates and brood sizes between treatment categories to see whether the design was balanced and thus controlling for environmental and social factors (like differences in hatch date) are not necessary; if well matched across treatments (90%) we will attempt analyses with nest pairs (reduced/increased) or triads (reduced/increase/unmanipulated), i.e. no need to control for differences between reared and hatched nest; if the match is <90% we will control the models for the age differences between the reared and hatch nests
     - is it possible to pair the treatments with control (to construct enlarged/reduced/unmanipulated "triads"; if not, controls will not be paired within analyses
     - if we find corr >0.6 between any combination of continuous fixed effects, we check how model results change when each variable is taken out of the model at a time
@@ -18,14 +17,14 @@ ORY* decided upon the following analyses and procedures to answer:
 ## MODELS  
     # BACKGROUND
         # data
-            We believe that adding or taking four chicks from large broods (12-16 chicks) or from small broods (4-5 chicks) makes for two different experiments. Hence, we devided the dataset into two and analyzed those separately. 
+            We believe that adding or taking four chicks from large broods (12-16 chicks) or from small broods (4-5 chicks) makes for two different experiments. Hence, we divided the dataset into two and analyzed those separately. 
 
         #  dependent variables
             change_chick_# = change in chick number from start of experiment till day 14 () ~ 
 
-            day_14_body_mass = 
-            day_14_tarsus_length =     
-            day_14_body_mass_index = DEFINE
+            day_14_body_mass = mass of chick in grams at day 14 after hatching
+            day_14_tarsus_length = Length of chick tarsometatarus in mm at day 14 after hatching
+            day_14_body_mass_index = similar to the human body mass index $$day\_14\_weight / (day\_14\_tarsus\_length^2)$$
 
 
          # key explanatory variable
@@ -63,9 +62,12 @@ ORY* decided upon the following analyses and procedures to answer:
             2a(1|paired/triad_nests_ID)2a +
             
             (1|day14_measurer) + (1|rear_area)
-             (1|rear_nest_OH_std) + (1|hatch_year)  +
-            (1|rear_nest_breed_ID)  + 
-            (1|hatch_mom_Ring) + (1|genetic_dad_ring_)  # DROP the last two if the model does not converge
+            
+(1|rear_nest_OH_std) + (1|hatch_year)  +
+            (1|rear_nest_breed_ID)
+ + 
+            (1|hatch_mom_Ring) + (1|genetic_dad_ring_)
+ # DROP the last two if the model does not converge
 
 
        ms =  day_14_body_mass/tarsus_length/body_mass_index ~ 
@@ -76,9 +78,12 @@ ORY* decided upon the following analyses and procedures to answer:
             2a(1|paired/triad_nests_ID)2a +
             
             (1|day14_measurer) + (1|rear_area)
-             (1|rear_nest_OH_std) + (1|hatch_year)  +
-            (1|rear_nest_breed_ID)  + 
-            (1|hatch_mom_Ring) + (1|genetic_dad_ring_)  # DROP the last two if the model does not converge
+            
+(1|rear_nest_OH_std) + (1|hatch_year)  +
+            (1|rear_nest_breed_ID)
+ + 
+            (1|hatch_mom_Ring) + (1|genetic_dad_ring_)
+ # DROP the last two if the model does not converge
 
     
         Check with AIC whether model with sex in interaction fits the data better (AICdelta > 5)
