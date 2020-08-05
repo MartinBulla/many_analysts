@@ -364,7 +364,7 @@ summary {
 
 <h1 class="title toc-ignore">A PRIORY DECIDED PROCEDURE for ‘Many EcoEvo Analysts’ project</h1>
 <h4 class="author">Luke J. Eberhart-Phillips and Martin Bulla</h4>
-<h4 class="date">2020-08-05 09:30:31</h4>
+<h4 class="date">2020-08-05 12:16:50</h4>
 
 </div>
 
@@ -398,7 +398,7 @@ summary {
 <div id="dependent-variables" class="section level3">
 <h3>Dependent variables</h3>
 <ul>
-<li>change_chick_# = change in chick number from start of experiment till day 14 () ~</li>
+<li>change_chick_# = change in chick number from start of experiment till day 14</li>
 <li>day_14_weight = mass of chick in grams at day 14 after hatching</li>
 <li>day_14_tarsus_length = Length of chick tarsometatarus in mm at day 14 after hatching<br />
 </li>
@@ -435,7 +435,7 @@ summary {
 <div id="no-growth---chick-mortality" class="section level3">
 <h3>1. NO GROWTH - chick mortality</h3>
 <pre class="r"><code>    &#39;change_chick_#&#39; ~ net_rearing_manipulation * rear_Cs_at_start_of_rearing + 
-                     brood_sex_ration (only if doable)+ 
+                     brood_sex_ration + # only if doable 
                      (1|hatch_year) + (1|rear_area)</code></pre>
 </div>
 <div id="chick-size-given-treatment" class="section level3">
@@ -449,33 +449,33 @@ summary {
 <pre class="r"><code>    m0 =  day_14_body_mass/tarsus_length/body_mass_index ~ 
             net_rearing_manipulation * rear_Cs_at_start_of_rearing +
             net_rearing_manipulation * d14_rear_nest_brood_size +
-            sex (only if doable) + brood_sex_ration (only if doable) + 
+            chick_sex_molec + # only if doable
+            brood_sex_ration + # only if doable
 
-            2a(1|paired/triad_nests_ID)2a +
+            (1|paired/triad_nests_ID) + # only for 2a and if doable
             
             (1|day14_measurer) + (1|rear_area)
             
 (1|rear_nest_OH_std) + (1|hatch_year)  +
             (1|rear_nest_breed_ID)
  + 
-            (1|hatch_mom_Ring) + (1|genetic_dad_ring_)
- # DROP the last two if the model does not converge
+            (1|hatch_mom_Ring) + (1|genetic_dad_ring_) # DROP the last two if the model does not converge
 
 
     ms =  day_14_body_mass/tarsus_length/body_mass_index ~ 
-            net_rearing_manipulation * rear_Cs_at_start_of_rearing * sex+
-            net_rearing_manipulation * d14_rear_nest_brood_size * sex +
-            sex (only if doable) + brood_sex_ration (only if doable) + 
+            net_rearing_manipulation * rear_Cs_at_start_of_rearing * chick_sex_molec+
+            net_rearing_manipulation * d14_rear_nest_brood_size * chick_sex_molec +
+            chick_sex_molec + # only if doable
+            brood_sex_ration + # only if doable
 
-            2a(1|paired/triad_nests_ID)2a +
+             (1|paired/triad_nests_ID) + # only for 2a and if doable
             
             (1|day14_measurer) + (1|rear_area)
             
 (1|rear_nest_OH_std) + (1|hatch_year)  +
             (1|rear_nest_breed_ID)
  + 
-            (1|hatch_mom_Ring) + (1|genetic_dad_ring_)
- # DROP the last two if the model does not converge</code></pre>
+            (1|hatch_mom_Ring) + (1|genetic_dad_ring_) # DROP the last two if the model does not converge</code></pre>
 <p>We will check with AIC whether models with sex in interaction fit the data better (AICdelta &gt; 5).</p>
 </div>
 </div>
