@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
 ```
 
 ## Data Import
@@ -51,12 +51,15 @@ theme_set(luke_theme)
 ## Distributions of variables of interest
 
 Step one:
-- distribution of hatching dates and brood sizes between treatment categories to see whether the design was balanced and thus controlling for environmental and social factors (like differences in hatch date) are not necessary; if well matched across treatments (90%) we will attempt analyses with nest pairs (reduced/increased) or triads (reduced/increase/unmanipulated), i.e. no need to control for differences between reared and hatched nest; if the match is <90% we will control the models for the age differences between the reared and hatch nests
+check the distribution of hatching dates and brood sizes between treatment categories to see whether the design was balanced. 
+
+If not balanced we will need to control for environmental and social factors (like differences in hatch date and brood size); if well matched across treatments (90%) we will attempt analyses with nest pairs (reduced/increased) or triads (reduced/increase/unmanipulated), i.e. no need to control for differences between reared and hatched nest; if the match is <90% we will control the models for the age differences between the reared and hatch nests and brood size. 
 
 ### Brood Sizes
 
+#### What is a good cutoff for the "small" and "large" broods?
+plot of d0_hatch_nest_brood_size based on treatment
 ```{r brood size distribution plots}
-# plot of d0_hatch_nest_brood_size based on treatment
 BT_data %>% 
   # change "." to "NA"
   mutate(d0_hatch_nest_brood_size = ifelse(d0_hatch_nest_brood_size == ".", "NA", d0_hatch_nest_brood_size),
@@ -73,8 +76,9 @@ BT_data %>%
   geom_histogram(aes(d0_hatch_nest_brood_size), alpha = 0.3, color = "grey40", fill = "#7570B3", 
                  binwidth = 1, position = "identity") +
   facet_grid(. ~ rear_nest_trt)
-
-# plot of rear_d0_rear_nest_brood_size based on treatment
+```
+plot of rear_d0_rear_nest_brood_size based on treatment
+```{r}
 BT_data %>% 
   # change "." to "NA"
   mutate(d0_hatch_nest_brood_size = ifelse(d0_hatch_nest_brood_size == ".", "NA", d0_hatch_nest_brood_size),
@@ -90,25 +94,9 @@ BT_data %>%
   geom_histogram(aes(rear_d0_rear_nest_brood_size), alpha = 0.3, color = "grey40", fill = "#7570B3", 
                  binwidth = 1, position = "identity") +
   facet_grid(. ~ rear_nest_trt)
-
-# plot of rear_Cs_at_start_of_rearing based on treatment
-BT_data %>% 
-  # change "." to "NA"
-  mutate(rear_Cs_at_start_of_rearing = ifelse(rear_d0_rear_nest_brood_size == ".", "NA", rear_d0_rear_nest_brood_size)) %>% 
-  # specify as numeric
-  mutate(rear_Cs_at_start_of_rearing = as.numeric(as.character(rear_Cs_at_start_of_rearing)),
-         # re-name the treatment groups
-         rear_nest_trt = ifelse(rear_nest_trt == 5, "increase", 
-                                ifelse(rear_nest_trt == 6, "decrease", "control"))) %>% 
-  # histogram of brood size distribution across the three levels of treatment
-  ggplot() +
-  geom_histogram(aes(rear_Cs_at_start_of_rearing), alpha = 0.3, color = "grey40", fill = "#7570B3", 
-                 binwidth = 1, position = "identity") +
-  facet_grid(. ~ rear_nest_trt)
 ```
-
+plot of rear_Cs_at_start_of_rearing based on treatment
 ```{r}
-# plot of rear_Cs_at_start_of_rearing based on treatment
 BT_data %>% 
   # change "." to "NA"
   mutate(rear_Cs_at_start_of_rearing = ifelse(rear_d0_rear_nest_brood_size == ".", "NA", rear_d0_rear_nest_brood_size)) %>% 
@@ -124,10 +112,8 @@ BT_data %>%
   facet_grid(. ~ rear_nest_trt)
 ```
 
-
-*Increase*
+proportional table of d0_hatch_nest_brood_size based on treatment *Increase*
 ```{r brood size distribution table increase}
-# proportional table of d0_hatch_nest_brood_size based on treatment
 BT_data %>% 
   # change "." to "NA"
   mutate(d0_hatch_nest_brood_size = ifelse(d0_hatch_nest_brood_size == ".", "NA", d0_hatch_nest_brood_size),
@@ -148,9 +134,8 @@ BT_data %>%
   scroll_box(width = "80%")
 ```
 
-*Decrease*
+proportional table of d0_hatch_nest_brood_size based on treatment *Decrease*
 ```{r brood size distribution table decrease}
-# proportional table of d0_hatch_nest_brood_size based on treatment
 BT_data %>% 
   # change "." to "NA"
   mutate(d0_hatch_nest_brood_size = ifelse(d0_hatch_nest_brood_size == ".", "NA", d0_hatch_nest_brood_size),
@@ -171,9 +156,8 @@ BT_data %>%
   scroll_box(width = "80%")
 ```
 
-*Control*
+proportional table of d0_hatch_nest_brood_size based on treatment *Control*
 ```{r brood size distribution table control}
-# proportional table of d0_hatch_nest_brood_size based on treatment
 BT_data %>% 
   # change "." to "NA"
   mutate(d0_hatch_nest_brood_size = ifelse(d0_hatch_nest_brood_size == ".", "NA", d0_hatch_nest_brood_size),
@@ -195,9 +179,35 @@ BT_data %>%
 ```
 Following this, it seems like 8 might be a good cutoff for the two groups of brood size (i.e., d0_hatch_nest_brood_size < 8 then "small", d0_hatch_nest_brood_size > 8 then "large")
 
-Need to check how well nests were paired according to brood size (e.g., Nest 1 had 12 chicks and Nest 2 also had 12 chicks)
+#### Is it true that manipulations were approximately "one-fourth" of the original brood size?
+NO! it seems like the manipulations were not all "one fourth" (as written in the field methods)! vertical dashed lines in this plot show 0.25% of the hatched nest brood size. Note that "large" is nests > 8 and "small" is nests < 8 chicks. It seems that most small nests experienced manipulations in brood size way more than 25%!! In other words, the bottom-middle panel shows that all the data are left of the dashed line!
+```{r}
+# plot of proportion of brood moved based on treatment
+BT_data %>% 
+  # change "." to "NA"
+  mutate(d0_hatch_nest_brood_size = ifelse(d0_hatch_nest_brood_size == ".", "NA", d0_hatch_nest_brood_size),
+         net_rearing_manipulation = ifelse(net_rearing_manipulation == ".", "NA", net_rearing_manipulation)) %>% 
+  # specify as numeric
+  mutate(d0_hatch_nest_brood_size = as.numeric(as.character(d0_hatch_nest_brood_size)),
+         net_rearing_manipulation = as.numeric(as.character(net_rearing_manipulation)),
+         # re-name the treatment groups
+         rear_nest_trt = ifelse(rear_nest_trt == 5, "increase", 
+                                ifelse(rear_nest_trt == 6, "decrease", "control"))) %>% 
+  # create a group variable specifying if it was a small or large nest
+  mutate(brood_size_group = ifelse(d0_hatch_nest_brood_size > 8, "large", "small"),
+         proportional_change_in_brood_size = abs(net_rearing_manipulation) / d0_hatch_nest_brood_size) %>% 
+  filter(!is.na(brood_size_group)) %>% 
+  ggplot() +
+  geom_histogram(aes(proportional_change_in_brood_size), alpha = 0.3, color = "grey40", fill = "#7570B3", 
+                 binwidth = 0.1, position = "identity") +
+  geom_vline(xintercept = 0.25, linetype = "dashed") +
+  facet_grid(brood_size_group ~ rear_nest_trt) +
+  xlab("Proportional change in brood size following manipulation")
+```
+
+#### How well are paired nests paired according to brood size?
+plot of the difference in brood size between paired nests
 ```{r brood size differences in pairs}
-# plot of the difference in brood size between paired nests
 BT_data %>% 
   # change "." to "NA"
   mutate(d0_hatch_nest_brood_size = ifelse(d0_hatch_nest_brood_size == ".", "NA", d0_hatch_nest_brood_size),
@@ -222,8 +232,8 @@ BT_data %>%
   facet_grid(rear_nest_trt ~ brood_size_group)
 ```
 
+proportional table of differences in brood sizes for nests > 8
 ```{r prop table for large nest pairs}
-# proportional table of differences in brood sizes for nests > 8 
 BT_data %>% 
   # change "." to "NA"
   mutate(d0_hatch_nest_brood_size = ifelse(d0_hatch_nest_brood_size == ".", "NA", d0_hatch_nest_brood_size),
@@ -251,8 +261,8 @@ BT_data %>%
   scroll_box(width = "80%")
 ```
 
+proportional table of differences in brood sizes for nests < 8 
 ```{r prop table for small nest pairs}
-# proportional table of differences in brood sizes for nests < 8 
 BT_data %>% 
   # change "." to "NA"
   mutate(d0_hatch_nest_brood_size = ifelse(d0_hatch_nest_brood_size == ".", "NA", d0_hatch_nest_brood_size),
@@ -280,7 +290,8 @@ BT_data %>%
   scroll_box(width = "80%")
 ```
 
-identify the "weird" outlier pairs that have much different brood sizes. need to think about what to do with these pairs.
+#### What are these weird outliers which have been paired even though they have extremely different initial brood sizes?
+need to think about what to do with these pairs.
 ```{r weird pairs}
 BT_data %>% 
   # change "." to "NA"
@@ -302,7 +313,11 @@ BT_data %>%
   filter(diff_brood_size < -6 | diff_brood_size > 9) %>% 
   select(hatch_nest_breed_ID, rear_nest_breed_ID, d0_hatch_nest_brood_size, rear_d0_rear_nest_brood_size, diff_brood_size, rear_nest_trt, brood_size_group) %>%
   distinct() %>% 
-  arrange(hatch_nest_breed_ID)
+  arrange(hatch_nest_breed_ID) %>% 
+  collect() %>%
+  kable() %>%
+  kable_styling() %>%
+  scroll_box(width = "100%", height = "10%")
 ```
 
 ### Hatch Dates
@@ -336,10 +351,13 @@ BT_data %>%
 
 # wow, big differences! need to standardize hatch date by year to make years comparable
 
-# standardize the hatch date of the rear_nest by year
-BT_data <- 
+# standardize the hatch date of the rear_nest by year (correcting for the minimum hatch date)
+BT_data <-
   BT_data %>% 
-  mutate(rear_nest_OH_std = as.numeric(scale_by(rear_nest_OH ~ hatch_year, .)))
+  group_by(hatch_year) %>% 
+  summarise(min_rear_nest_OH = min(rear_nest_OH, na.rm = TRUE)) %>% 
+  left_join(., BT_data, by = "hatch_year") %>% 
+  mutate(rear_nest_OH_std = rear_nest_OH - min_rear_nest_OH)
 
 # plot standardized hatch date variation by year
 BT_data %>% 
@@ -351,12 +369,12 @@ BT_data %>%
 # great this looks good now
 ```
 
-Assesment of matching by brood size and hatch date:
+### Overall assesment of matching by brood size and hatch date:
 - the vast majority of pairs have the brood sizes that are within 1 chick difference (>80%)
 - there is a strange subset of nests that had extreme differences in brood size (likley due to availability of nests at a given time point in the season. I would guess that matching the age of chicks (i.e., hatch date) was prioritized over brood size)
 - Almost all pairs are matched for hatch date (99%) so this is not an issue to control for
 - to proceed with the pair-based analysis, perhaps we should limit it to nests that are within 5 chicks of each other (based on the distribution shown in the following plot)
-
+- Need to consider the manipulation of small nests (i.e., those with less than 8 chicks): the experiment often increased or decreased the brood size >>25%! Perhaps we should still split the analysis into small vs. large since the experiemental treatment is not comparable.
 ```{r hatch dates vs brood size difference plot}
 BT_data %>% 
   # change "." to "NA"
@@ -384,5 +402,3 @@ BT_data %>%
   xlab("Standardized hatch date of rear nest") +
   facet_grid(rear_nest_trt ~ brood_size_group)
 ```
-
-Test a change to the exploration Rmd
