@@ -346,7 +346,7 @@ BT_data %>%
   ggplot() +
   geom_histogram(aes(rear_nest_OH_std), alpha = 0.3, color = "grey40", fill = "#7570B3", 
                  binwidth = 1, position = "identity") +
-  facet_grid(hatch_year ~ .)
+  facet_grid(hatch_year ~ .) 
 
 # great this looks good now
 ```
@@ -384,3 +384,5 @@ BT_data %>%
   xlab("Standardized hatch date of rear nest") +
   facet_grid(rear_nest_trt ~ brood_size_group)
 ```
+
+Test a change to the exploration Rmd
