@@ -5,7 +5,6 @@
 *.pdf
 *.ini
 *.log
-*.tex
 *.orig
 *.pyc
 *.Rcheck/
