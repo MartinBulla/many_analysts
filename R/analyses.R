@@ -537,6 +537,14 @@
         m_ass(name = 'Table Bc - tarsus-netxsex+sex-ratio', mo = mb0gs, dat = dmg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
     # Table Be - Extended material
 
+# VISUALISE including estimates
+    ggplot(a, aes(x = chick_sex_molec, y = body_mass_index)) + geom_boxplot() + theme_MB
+    ggplot(a, aes(x = chick_sex_molec, y = day_14_weight)) + geom_boxplot() + theme_MB
+    ggplot(a, aes(x = chick_sex_molec, y = day_14_tarsus_length)) + geom_boxplot() + theme_MB
+
+    ggplot(a, aes(x = net_rearing_manipulation, y = body_mass_index)) + geom_point() + stat_smooth(method = "rlm") + theme_MB
+    ggplot(a, aes(x = net_rearing_manipulation, y = day_14_weight))  + geom_point() + stat_smooth(method = "rlm") + theme_MB
+    ggplot(a, aes(x = net_rearing_manipulation, y = day_14_tarsus_length))  + geom_point() + stat_smooth(method = "rlm") + theme_MB
 
 # START HERE - remove EXTENDED DATA MODELS FROM ABOVE and COPY ALL ABOVE MODELS HERE USING SCALED VARIABLES 
 
