@@ -1,6 +1,7 @@
 # TOOLS and SETTINGS
-require(here)
-source(here::here('R/tools.R'))
+    require(here)
+    source(here::here('R/tools.R'))
+    reml = TRUE
 
 # DATA preparation
     a = fread('Data/blue_tit_data.csv') 
@@ -34,7 +35,7 @@ source(here::here('R/tools.R'))
             a[chick_sex_molec == 'u', sex := 0.5]
             a[, brood_sex_ratio := sum(sex)/length(sex), by = rear_nest_breed_ID]
 
-# data checking
+# additional data checking
     # NAs
         summary(a) 
         summary(factor(a$chick_sex_molec))
@@ -73,10 +74,103 @@ source(here::here('R/tools.R'))
             geom_point() + stat_smooth(method = 'lm') + facet_wrap(.~ treatment)
 
 # RESULTS and 
-    # tarsus without genetics
-        dt0 = a[complete.cases(a),.(day_14_tarsus_length, net_rearing_manipulation, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID)]
+    # tarsus without sex interaction and no genetic control
+      dt0 = a[complete.cases(a),.(day_14_tarsus_length, net_rearing_manipulation, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID)]
 
-      # main text model
+        # main text model simple
+            mt0 =  lmer(day_14_tarsus_length ~ 
+                net_rearing_manipulation +  
+                chick_sex_molec + 
+                brood_sex_ratio +
+                (1|day14_measurer) + (1|rear_area) + 
+                (1|rear_nest_OH_l) + (1|hatch_year)  +
+                (1|rear_nest_breed_ID),
+                data = d, REML = reml
+                )
+            summary(mt0) 
+            summary(glht(mt0))
+            plot(allEffects(mt0))
+        # extended data models (checking if net_rearing_manipulation changes with d14_rear_nest_brood_size - and initial model dropped because of a priori decision to use only one of the >0.6 correlated variables)
+             # interaction
+               mti =  lmer(day_14_tarsus_length ~ 
+                scale(net_rearing_manipulation) * scale(d14_rear_nest_brood_size) +
+                chick_sex_molec + 
+                brood_sex_ratio +
+                (1|day14_measurer) + (1|rear_area) + 
+                (1|rear_nest_OH_l) + (1|hatch_year)  +
+                (1|rear_nest_breed_ID),
+                data = d, , REML = reml
+                )
+               summary(mti) 
+               summary(glht(mti))
+               plot(allEffects(mti))
+
+              # no interaction
+               mt1 =  lmer(day_14_tarsus_length ~ 
+                scale(net_rearing_manipulation) + scale(d14_rear_nest_brood_size) +
+                chick_sex_molec + 
+                brood_sex_ratio +
+                (1|day14_measurer) + (1|rear_area) + 
+                (1|rear_nest_OH_l) + (1|hatch_year)  +
+                (1|rear_nest_breed_ID),
+                data = d, REML = reml
+                )
+               summary(mt1) 
+               summary(glht(mt1))
+               plot(allEffects(mt1))   
+
+              AIC(update(mt0,REML = FALSE),update(mti, REML = FALSE), update(mt1, REML = FALSE))
+    # tarsus with sex interaction and no genetic control
+      dt0 = a[complete.cases(a),.(day_14_tarsus_length, net_rearing_manipulation, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID)]
+
+        # main text model simple
+            mt0s =  lmer(day_14_tarsus_length ~ 
+                net_rearing_manipulation*chick_sex_molec + 
+                brood_sex_ratio +
+                (1|day14_measurer) + (1|rear_area) + 
+                (1|rear_nest_OH_l) + (1|hatch_year)  +
+                (1|rear_nest_breed_ID),
+                data = d, REML = reml
+                )
+            summary(mt0s) 
+            summary(glht(mt0s))
+            plot(allEffects(mt0s))
+        # extended data models (checking if net_rearing_manipulation changes with d14_rear_nest_brood_size - and initial model dropped because of a priori decision to use only one of the >0.6 correlated variables)
+             # interaction
+               mtis =  lmer(day_14_tarsus_length ~ 
+                scale(net_rearing_manipulation) * scale(d14_rear_nest_brood_size)*chick_sex_molec + 
+                brood_sex_ratio +
+                (1|day14_measurer) + (1|rear_area) + 
+                (1|rear_nest_OH_l) + (1|hatch_year)  +
+                (1|rear_nest_breed_ID),
+                data = d, , REML = reml
+                )
+               summary(mtis) 
+               summary(glht(mtis))
+               plot(allEffects(mtis))
+
+              # no interaction
+               mt1s =  lmer(day_14_tarsus_length ~ 
+                scale(net_rearing_manipulation) + scale(d14_rear_nest_brood_size) +
+                chick_sex_molec +
+                scale(net_rearing_manipulation):chick_sex_molec + 
+                scale(d14_rear_nest_brood_size):chick_sex_molec +
+                brood_sex_ratio +
+                (1|day14_measurer) + (1|rear_area) + 
+                (1|rear_nest_OH_l) + (1|hatch_year)  +
+                (1|rear_nest_breed_ID),
+                data = d, REML = reml
+                )
+               summary(mt1s) 
+               summary(glht(mt1s))
+               plot(allEffects(mt1s))   
+
+              AIC(update(mt0s,REML = FALSE),update(mtis, REML = FALSE), update(mt1s, REML = FALSE))
+
+  # tarsus with sex interaction and no genetic control
+    dt0 = a[complete.cases(a),.(day_14_tarsus_length, net_rearing_manipulation, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID)]
+
+    # main text model simple
         mt0 =  lmer(day_14_tarsus_length ~ 
             net_rearing_manipulation +  
             chick_sex_molec + 
@@ -84,13 +178,12 @@ source(here::here('R/tools.R'))
             (1|day14_measurer) + (1|rear_area) + 
             (1|rear_nest_OH_l) + (1|hatch_year)  +
             (1|rear_nest_breed_ID),
-            data = d
+            data = d, REML = reml
             )
         summary(mt0) 
         summary(glht(mt0))
         plot(allEffects(mt0))
-
-       # extended data models (checking if net_rearing_manipulation changes with d14_rear_nest_brood_size - and initial model dropped because of a priori decision to use only one of the >0.6 correlated variables)
+    # extended data models (checking if net_rearing_manipulation changes with d14_rear_nest_brood_size - and initial model dropped because of a priori decision to use only one of the >0.6 correlated variables)
          # interaction
            mti =  lmer(day_14_tarsus_length ~ 
             scale(net_rearing_manipulation) * scale(d14_rear_nest_brood_size) +
@@ -99,7 +192,7 @@ source(here::here('R/tools.R'))
             (1|day14_measurer) + (1|rear_area) + 
             (1|rear_nest_OH_l) + (1|hatch_year)  +
             (1|rear_nest_breed_ID),
-            data = d
+            data = d, , REML = reml
             )
            summary(mti) 
            summary(glht(mti))
@@ -113,15 +206,13 @@ source(here::here('R/tools.R'))
             (1|day14_measurer) + (1|rear_area) + 
             (1|rear_nest_OH_l) + (1|hatch_year)  +
             (1|rear_nest_breed_ID),
-            data = d
+            data = d, REML = reml
             )
            summary(mt1) 
            summary(glht(mt1))
            plot(allEffects(mt1))   
 
-     AIC(mt0,mti, mt1)
-
-       
+          AIC(update(mt0,REML = FALSE),update(mti, REML = FALSE), update(mt1, REML = FALSE))       
     # tarsus with genetics
         d = a[complete.cases(a),.(day_14_tarsus_length, net_rearing_manipulation, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID, hatch_mom_Ring, genetic_dad]
         mt0g =  lmer(day_14_tarsus_length ~ 
