@@ -80,7 +80,7 @@ using<-function(...) {
     png(paste(outdir,name, ".png", sep=""), width=6,height=9,units="in",res=600)
      }else{dev.new(width=6,height=9)}
    
-   n = nrow(l)-1+length(fixed)+length(categ) + 7
+   n = nrow(l)-1+length(fixed)+length(categ) + 4 + if(temporal==TRUE){1}else{0} + if(spatial==TRUE){1}else{0} 
    par(mfrow=c(ceiling(n/3),3))
    
    scatter.smooth(fitted(mo),resid(mo),col='grey');abline(h=0, lty=2, col ='red')
