@@ -63,7 +63,7 @@ using<-function(...) {
     x = rbind(oii,ri)
     if (aic == TRUE){   
         x$AIC = NA
-        x$AIC[1]=AIC(update(model,REML = FALSE) # note that this one is incorrect because it is fitted with REML
+        x$AIC[1]=AIC(update(model,REML = FALSE)
         x$delta = x$prob = x$ER = NA
         }
     return(x)
