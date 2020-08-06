@@ -1,8 +1,9 @@
 ---
 title: "METHODS for 'same data different analysts' project, ‘Many EcoEvo Analysts’ dataset"
 author: "Luke J. Eberhart-Phillips and Martin Bulla"
-date: "`r Sys.Date()`"
-output: html_document: default
+date: "`r Sys.time()`"
+output: 
+    html_document: default
 bibliography: many_analysts.xml
 ---
 
