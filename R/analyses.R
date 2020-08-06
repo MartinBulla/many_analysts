@@ -193,7 +193,7 @@
       dt0 = a[complete.cases(a),.(day_14_tarsus_length, net_rearing_manipulation, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID)]
       dt0[, net_rearing_manipulation_factor := as.factor(net_rearing_manipulation)]
 
-        # main text model simple - and the single relevant one
+        # main text model simple - and the single relevant one (ML model for AIC does not converge)
             mt0s =  lmer(day_14_tarsus_length ~ 
                 net_rearing_manipulation*chick_sex_molec + 
                 brood_sex_ratio +
@@ -347,6 +347,34 @@
     aic2[, prob := round(exp(-0.5*deltaAIC)/sum(exp(-0.5*deltaAIC)),2)]
     aic2[, ER := round(max(prob)/prob, 2)]
     aic2[order(deltaAIC)]
+
+    # Table T1 - main text
+        o_mt0 = m_out(name = "a - main", model = mt0, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
+        o_mt14  = m_out(name = "b - d14 chick #", model = mt14, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
+        o_mt0s = m_out(name = "d - sex interaction", model = mt0s, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)   
+        
+        o_mt0g = m_out(name = "c - genetic", model = mt0g, round_ = 3, nsim = 5000, aic = TRUE)
+        o_mt0gs = m_out(name = "c - (genetic) sex interaction", model = mt0gs, round_ = 3, nsim = 5000, aic = TRUE) # convergence issues
+    # Table T - Extended data
+
+  o1 = m_out(name = "all", model = m1, round_ = 5, nsim = 5000, aic = FALSE)  
+  o2 = m_out(name = "good", model = m2, round_ = 3, nsim = 5000, aic = FALSE)  
+  o3 = m_out(name = "all >1yr", model = m3, round_ = 3, nsim = 5000, aic = FALSE)  
+  o4 = m_out(name = "good >1yr", model = m4, round_ = 3, nsim = 5000, aic = FALSE)  
+
+  sname = 'Table_Note9'
+  write_xlsx(rbind(o1,o2,o3,o4), paste0("Outputs/",sname,'.xlsx'))
+m_ass(name = 'DPR_hem+year+abslatTRUE', mo = m0, dat = dd_, fixed = c('N_nests','mean_year', 'lat_abs'),categ = 'hemisphere', trans = c('log','none','none'), spatial = TRUE, temporal = TRUE, PNG = TRUE)
+    om0 = m_out(name = "S6bA DPR_hem+year+abslatTRUE", model = m0, round_ = 3, nsim = 5000, aic = FALSE, save_sim = paste0(wd, 'posteriory_simulations/'))
+
+  l = list()
+  l[['dpr']] = rbind(om0,om1,om0p,om1p)
+  l[['tpr']] = rbind(om0t,om1t, om0pt,om1pt)
+           
+  sname = 'Table_S6b_lat'
+  tmp = write_xlsx(l, paste0(outdir,sname,'.xlsx'))
+  #openFile(tmp)   
+  #shell(sname)  
 # WEIGHT - all model have warning because effect of measurer is zero
     # tarsus without sex interaction and no genetic control
       dw0 = a[complete.cases(a),.(day_14_weight, net_rearing_manipulation, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID)]
