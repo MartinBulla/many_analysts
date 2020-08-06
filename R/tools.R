@@ -14,7 +14,7 @@ using<-function(...) {
 
 
 # load/install packages
-  packages = c('anytime','arm','data.table', 'effects', 'foreach', 'ggplot2', 'ggthemes', 'glue',  'grid', 'here', 'htmlTable', 'lattice', 'lubridate', 'magrittr', 'multcomp', 'plyr','raster','stringr','zoo')
+  packages = c('anytime','arm','data.table', 'effects', 'foreach', 'ggplot2', 'ggthemes', 'glue',  'grid', 'here', 'htmlTable', 'lattice', 'lubridate', 'magrittr', 'multcomp', 'plyr','raster','stringr','xlsx','zoo')
   sapply(packages, function(x) suppressPackageStartupMessages(using(x)) )
 
 # Customized ggplot theme
@@ -43,7 +43,7 @@ using<-function(...) {
 
 
 # model output function
-  m_out = function(name = "define", model = m, round_ = 3, nsim = 5000, aic = TRUE){
+  m_out = function(name = "define", model = m, round_ = 3, nsim = 5000, aic = TRUE, N = NA){
     bsim <- sim(model, n.sim=nsim)  
      v = apply(bsim@fixef, 2, quantile, prob=c(0.5))
      ci = apply(bsim@fixef, 2, quantile, prob=c(0.025,0.975))   
@@ -61,15 +61,19 @@ using<-function(...) {
     ri=data.frame(model=name,type='random %',effect=l$pred, estimate_r=round(100*l$vcov/sum(l$vcov)), lwr_r=NA, upr_r=NA)
     ri$estimate_r = paste(ri$estimate_r,'%',sep='')
     x = rbind(oii,ri)
+    x$N = NA
+    x$N[1] = N
     if (aic == TRUE){   
         x$AIC = NA
-        x$AIC[1]=AIC(update(model,REML = FALSE)
-        x$delta = x$prob = x$ER = NA
+        x$AIC[1]=AIC(update(model,REML = FALSE))
+        x$delta = NA
+        x$prob = NA
+        x$ER = NA
         }
     return(x)
   } 
 # model assumption function
-  m_ass = function(name = 'define', mo = m0, dat = d, fixed = NULL, categ = NULL, trans = NULL, spatial = TRUE, temporal = TRUE, PNG = TRUE){
+  m_ass = function(name = 'define', mo = m0, dat = d, fixed = NULL, categ = NULL, trans = NULL, spatial = TRUE, temporal = TRUE, PNG = TRUE, outdir = 'outdir'){
    l=data.frame(summary(mo)$varcor)
    l = l[is.na(l$var2),]
    if(PNG == TRUE){
@@ -105,7 +109,7 @@ using<-function(...) {
                     log_ = grepl("log",rownames(summary(mo)$coef)[2:length(unique(scatter))]), stringsAsFactors = FALSE)
     for (i in 1:length(fixed)){
         jj =fixed[i]
-        variable=dat[,names(dat)==jj]
+        variable=dat[, ..jj][[1]]
         if(trans[i]=='log'){
         scatter.smooth(resid(mo)~log(variable),xlab=paste('log(',jj,')',sep=''), col = 'grey');abline(h=0, lwd=1, lty = 2, col ='red')
         }else if(trans[i]=='abs'){
@@ -117,7 +121,7 @@ using<-function(...) {
     
     if(length(categ)>0){
       for(i in categ){
-         variable=dat[,names(dat)==i]
+         variable=dat[, ..i][[1]]
           boxplot(resid(mo)~variable, medcol='grey', whiskcol='grey', staplecol='grey', boxcol='grey', outcol='grey');abline(h=0, lty=3, lwd=1, col = 'red')
          }
     }     
@@ -141,3 +145,4 @@ using<-function(...) {
   if(PNG==TRUE){dev.off()}
   }
     
+
