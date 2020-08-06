@@ -27,7 +27,7 @@ source(here::here('R/tools.R'))
     # compute  variables
         a[, change_chick_n := rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size]
         a[, rear_nest_OH_l :=  rear_nest_OH - min(rear_nest_OH), by = hatch_year] # day when first nest hatch in a given year is zero day of the season
-        
+        a[, prop_change_in_brood_size := net_rearing_manipulation/d0_hatch_nest_brood_size]
         # sex ration at day 14
             a[chick_sex_molec == 'm', sex := 1]
             a[chick_sex_molec == 'f', sex := 0]
@@ -45,8 +45,16 @@ source(here::here('R/tools.R'))
         summary(factor(a$d14_rear_nest_brood_size)) 
         summary(factor(a$net_rearing_manipulation)) 
         summary(as.factor(a$rear_Cs_at_start_of_rearing))
+        summary(as.factor(a$d0_hatch_nest_brood_size))
+        summary(a$prop_change_in_brood_size)
+
 
         ggplot(a, aes(x = net_rearing_manipulation)) + geom_histogram()
+        ggplot(a, aes(x = d14_rear_nest_brood_size-rear_Cs_at_start_of_rearing, fill = treatment)) + geom_histogram(position='dodge', bins = 12) + scale_x_continuous("dead chicks at day 14\n since start of experiment", breaks = seq(-10,1, by = 1), label = seq(-10,1, by = 1)) + xlab(c(-10, 1)) + theme_MB # in one case the brood size has increased by one chick
+
+        ggplot(a, aes(x = (d14_rear_nest_brood_size-rear_Cs_at_start_of_rearing)/rear_Cs_at_start_of_rearing, fill = treatment)) + geom_histogram(position='dodge', bins = 12) + scale_x_continuous("proportion of dead chicks at day 14\n since start of experiment",breaks = seq(-1,0.3, by = 0.1), label = seq(-1,0.3, by = 0.1)) + xlab(c(-1, 0.3)) + theme_MB
+
+        ggplot(a, aes(x = prop_change_in_brood_size, fill = treatment)) + geom_histogram() +xlim(c(-0.5,0.5))+ theme_MB
 
     # cor among  predictors
       # chick numbers at hatching and day 14    
@@ -64,11 +72,27 @@ source(here::here('R/tools.R'))
         ggplot(a, aes( y = net_rearing_manipulation, x = d14_rear_nest_brood_size)) +
             geom_point() + stat_smooth(method = 'lm') + facet_wrap(.~ treatment)
 
-# MODELS
+# RESULTS and 
     # tarsus without genetics
-        d = a[complete.cases(a),.(day_14_tarsus_length, net_rearing_manipulation, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID)]
+        dt0 = a[complete.cases(a),.(day_14_tarsus_length, net_rearing_manipulation, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID)]
 
-        mti0 =  lmer(day_14_tarsus_length ~ 
+      # main text model
+        mt0 =  lmer(day_14_tarsus_length ~ 
+            net_rearing_manipulation +  
+            chick_sex_molec + 
+            brood_sex_ratio +
+            (1|day14_measurer) + (1|rear_area) + 
+            (1|rear_nest_OH_l) + (1|hatch_year)  +
+            (1|rear_nest_breed_ID),
+            data = d
+            )
+        summary(mt0) 
+        summary(glht(mt0))
+        plot(allEffects(mt0))
+
+       # extended data models (checking if net_rearing_manipulation changes with d14_rear_nest_brood_size - and initial model dropped because of a priori decision to use only one of the >0.6 correlated variables)
+         # interaction
+           mti =  lmer(day_14_tarsus_length ~ 
             scale(net_rearing_manipulation) * scale(d14_rear_nest_brood_size) +
             chick_sex_molec + 
             brood_sex_ratio +
@@ -77,11 +101,12 @@ source(here::here('R/tools.R'))
             (1|rear_nest_breed_ID),
             data = d
             )
-       summary(mti0) 
-       summary(glht(mti0))
-       plot(allEffects(mti0))
+           summary(mti) 
+           summary(glht(mti))
+           plot(allEffects(mti))
 
-       mt0 =  lmer(day_14_tarsus_length ~ 
+          # no interaction
+           mt1 =  lmer(day_14_tarsus_length ~ 
             scale(net_rearing_manipulation) + scale(d14_rear_nest_brood_size) +
             chick_sex_molec + 
             brood_sex_ratio +
@@ -90,22 +115,13 @@ source(here::here('R/tools.R'))
             (1|rear_nest_breed_ID),
             data = d
             )
-       summary(mt0) 
-       summary(glht(mt0))
-       plot(allEffects(mt0))
+           summary(mt1) 
+           summary(glht(mt1))
+           plot(allEffects(mt1))   
 
-       mt00 =  lmer(day_14_tarsus_length ~ 
-            scale(net_rearing_manipulation) +
-            chick_sex_molec + 
-            brood_sex_ratio +
-            (1|day14_measurer) + (1|rear_area) + 
-            (1|rear_nest_OH_l) + (1|hatch_year)  +
-            (1|rear_nest_breed_ID),
-            data = d
-            )
-       summary(mt00) 
-       summary(glht(mt00))
-       plot(allEffects(mt00))
+     AIC(mt0,mti, mt1)
+
+       
     # tarsus with genetics
         d = a[complete.cases(a),.(day_14_tarsus_length, net_rearing_manipulation, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID, hatch_mom_Ring, genetic_dad]
         mt0g =  lmer(day_14_tarsus_length ~ 
@@ -118,3 +134,5 @@ source(here::here('R/tools.R'))
             (1|hatch_mom_Ring) + (1|genetic_dad),
             data = d
             )
+
+# EXTENDED MATERIAL        
