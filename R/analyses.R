@@ -302,22 +302,14 @@
                 newD$upr <- apply(predmatrix, 1, quantile, prob=0.975)
                 newD$pred <- apply(predmatrix, 1, quantile, prob=0.5)
         pt=newD    
-        ptm = pt[pt$sex == 'm',]
-        ptf = pt[pt$sex == 'f',]
-        ptu = pt[pt$sex == 'u',]
+        ptm = pt[pt$chick_sex_molec == 'm',]
+        ptf = pt[pt$chick_sex_molec == 'f',]
+        ptu = pt[pt$chick_sex_molec == 'u',]
 
-      par(mar=c(2.2,0.5,0,0.1),ps=12, cex=1, font.main = 1, cex.lab=0.6,cex.main=0.7, cex.axis=0.5, tcl=-0.1,bty="n",xpd=TRUE)
-        plot(pt$pred~pt$net_rearing_manipulation)
-        , 
-                        xlim=c(0.5,8), ylim=c(-0.07,1),
-                        xaxt='n',
-                        yaxt='n',
-                        xaxs = 'i', yaxs = 'i',
-                        ylab = "",xlab = '',type='n')
-                        
-            polygon(c(pfc$st_cycle_c, rev(pfc$st_cycle_c)), c(pfc$lwr, 
-                    rev(pfc$upr)), border=NA, col=col_lb) #0,0,0 black 0.5 is transparents RED
-            lines(pfc$st_cycle_c, pfc$pred, col=col_l,lwd=1)  
+      plot(pt$pred~pt$net_rearing_manipulation,type='n')
+          polygon(c(ptf$net_rearing_manipulation, rev(ptf$net_rearing_manipulation)), c(ptf$lwr, 
+                    rev(ptf$upr)), border=NA, col="grey") #0,0,0 black 0.5 is transparents RED
+            lines(ptf$net_rearing_manipulation, ptf$pred, col="red",lwd=1)  
 # EXTENDED MATERIAL TABLES
     # TARSUS - Table TE 
         # INFO
