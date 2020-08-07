@@ -263,7 +263,61 @@
     ggplot(a, aes(x = net_rearing_manipulation, y = body_mass_index)) + geom_point() + stat_smooth(method = "rlm") + theme_MB
     ggplot(a, aes(x = net_rearing_manipulation, y = day_14_weight))  + geom_point() + stat_smooth(method = "rlm") + theme_MB
     ggplot(a, aes(x = net_rearing_manipulation, y = day_14_tarsus_length))  + geom_point() + stat_smooth(method = "rlm") + theme_MB
+    # prepare predictions
+        # tarsus
+            dtg = a[complete.cases(a),.(day_14_tarsus_length, net_rearing_manipulation, net_rearing_manipulation_factor, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID, hatch_mom_Ring, genetic_dad)]
 
+            m=  lmer(day_14_tarsus_length ~ 
+                    net_rearing_manipulation +  
+                    chick_sex_molec + 
+                    brood_sex_ratio +
+                    (1|day14_measurer) + (1|rear_area) + 
+                    (1|rear_nest_OH_l) + (1|hatch_year)  +
+                    (1|rear_nest_breed_ID) +
+                    (1|hatch_mom_Ring) + (1|genetic_dad),
+                    data = dtg, REML = reml
+                    )
+
+            nsim <- 5000
+            bsim <- sim(m, n.sim=nsim)  
+                
+        # coefficients
+            v = apply(bsim@fixef, 2, quantile, prob=c(0.5))
+            ci = apply(bsim@fixef, 2, quantile, prob=c(0.025, 0.975))
+            
+        # values to predict for
+            newD=data.frame(net_rearing_manipulation = seq(min(dtg$net_rearing_manipulation), max(dtg$net_rearing_manipulation), length.out = 300), chick_sex_molec = c('m','f','u'), brood_sex_ratio = mean(dtg$brood_sex_ratio))
+
+        # exactly the model which was used has to be specified here 
+            X <- model.matrix(~ net_rearing_manipulation +  
+                    chick_sex_molec + 
+                    brood_sex_ratio ,data=newD)   
+                        
+        # calculate predicted values and creditability intervals
+            newD$pred <-(X%*%v) 
+            predmatrix <- matrix(nrow=nrow(newD), ncol=nsim)
+            for(i in 1:nsim) predmatrix[,i] <- (X%*%bsim@fixef[i,])
+                predmatrix[predmatrix < 0] <- 0
+                newD$lwr <- apply(predmatrix, 1, quantile, prob=0.025)
+                newD$upr <- apply(predmatrix, 1, quantile, prob=0.975)
+                newD$pred <- apply(predmatrix, 1, quantile, prob=0.5)
+        pt=newD    
+        ptm = pt[pt$sex == 'm',]
+        ptf = pt[pt$sex == 'f',]
+        ptu = pt[pt$sex == 'u',]
+
+      par(mar=c(2.2,0.5,0,0.1),ps=12, cex=1, font.main = 1, cex.lab=0.6,cex.main=0.7, cex.axis=0.5, tcl=-0.1,bty="n",xpd=TRUE)
+        plot(pt$pred~pt$net_rearing_manipulation)
+        , 
+                        xlim=c(0.5,8), ylim=c(-0.07,1),
+                        xaxt='n',
+                        yaxt='n',
+                        xaxs = 'i', yaxs = 'i',
+                        ylab = "",xlab = '',type='n')
+                        
+            polygon(c(pfc$st_cycle_c, rev(pfc$st_cycle_c)), c(pfc$lwr, 
+                    rev(pfc$upr)), border=NA, col=col_lb) #0,0,0 black 0.5 is transparents RED
+            lines(pfc$st_cycle_c, pfc$pred, col=col_l,lwd=1)  
 # EXTENDED MATERIAL TABLES
     # TARSUS - Table TE 
         # INFO
@@ -378,7 +432,7 @@
                 aic2[, deltaAIC := AIC-min(AIC)]
                 aic2[, prob := round(exp(-0.5*deltaAIC)/sum(exp(-0.5*deltaAIC)),2)]
                 aic2[, ER := round(max(prob)/prob, 2)]
-                aic2[order(deltaAIC)]
+                aic2[order(deltaAIC)]          
         # Table Te -and model assumptions
             o_mt0g = m_out(name = "a - net chick", model = mt0g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
             m_ass(name = 'Table TEa - tarsus-net+sex+sex-ratio - scaled', mo = mt0g, dat = dtg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
@@ -400,7 +454,7 @@
             m_ass(name = 'Table TEg - tarsus-netxsex+d14xsex+sex-ratio - scaled', mo = mt1gs, dat = dtg, fixed = c('net_rearing_manipulation','d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
             
             sname = 'Table_TE'
-            o = data.table(rbind(o_mt0g,o_mt14g,,o_mtig,o_mt1g,o_mt0gs,o_mtigs,o_mt1gs))
+            o = data.table(rbind(o_mt0g,o_mt14g,o_mtig,o_mt1g,o_mt0gs,o_mtigs,o_mt1gs))
             aic = o[AIC!=""]
             aic[, AIC := as.numeric(AIC)]
             aic[, deltaAIC := AIC-min(AIC)]
@@ -420,7 +474,7 @@
 
             # no sex interactions
                 # main text model simple
-                    mt0g =  lmer(scale(day_14_tarsus_length) ~ 
+                    mt0g =  lmer(scale(day_14_weight) ~ 
                         scale(net_rearing_manipulation) +  
                         chick_sex_molec + 
                         scale(brood_sex_ratio) +
@@ -434,7 +488,7 @@
                     summary(glht(mt0g))
                     plot(allEffects(mt0g))
                 # net_rearing_manipulation exchanged for d14_rear_nest_brood_size 
-                    mt14g =  lmer(scale(day_14_tarsus_length) ~ 
+                    mt14g =  lmer(scale(day_14_weight) ~ 
                         scale(d14_rear_nest_brood_size) +  
                         chick_sex_molec + 
                         scale(brood_sex_ratio) +
@@ -447,7 +501,7 @@
                     summary(glht(mt14g))
                     plot(allEffects(mt14g))
                 # interaction: net_rearing_manipulation changes with d14_rear_nest_brood_size ? (was proposed initial model, but was dropped because of a priori decision to use only one of the >0.6 correlated variables)
-                    mtig =  lmer(scale(day_14_tarsus_length) ~ 
+                    mtig =  lmer(scale(day_14_weight) ~ 
                         scale(net_rearing_manipulation) * scale(d14_rear_nest_brood_size) +
                         chick_sex_molec + 
                         scale(brood_sex_ratio) +
@@ -462,7 +516,7 @@
                        plot(allEffects(mtig))
 
                 # net_rearing_manipulation and  d14_rear_nest_brood_size
-                       mt1g =  lmer(scale(day_14_tarsus_length) ~ 
+                       mt1g =  lmer(scale(day_14_weight) ~ 
                         scale(net_rearing_manipulation) + scale(d14_rear_nest_brood_size) +
                         chick_sex_molec + 
                         scale(brood_sex_ratio) +
@@ -477,7 +531,7 @@
                        plot(allEffects(mt1g))   
             # sex interaction
                 # main text model simple 
-                    mt0gs =  lmer(scale(day_14_tarsus_length) ~ 
+                    mt0gs =  lmer(scale(day_14_weight) ~ 
                         scale(net_rearing_manipulation)*chick_sex_molec + 
                         scale(brood_sex_ratio) +
                         (1|day14_measurer) + (1|rear_area) + 
@@ -490,7 +544,7 @@
                     summary(glht(mt0gs))
                     plot(allEffects(mt0gs))
                 # interaction: net_rearing_manipulation changes with d14_rear_nest_brood_size ? (was proposed initial model, but was dropped because of a priori decision to use only one of the >0.6 correlated variables)
-                    mtigs =  lmer(scale(day_14_tarsus_length) ~ 
+                    mtigs =  lmer(scale(day_14_weight) ~ 
                         scale(net_rearing_manipulation) * scale(d14_rear_nest_brood_size)*chick_sex_molec + 
                         scale(brood_sex_ratio) +
                         (1|day14_measurer) + (1|rear_area) + 
@@ -504,7 +558,7 @@
                        plot(allEffects(mtigs))
 
                     # net_rearing_manipulation and  d14_rear_nest_brood_size
-                       mt1gs =  lmer(scale(day_14_tarsus_length) ~ 
+                       mt1gs =  lmer(scale(day_14_weight) ~ 
                         scale(net_rearing_manipulation) + scale(d14_rear_nest_brood_size) +
                         chick_sex_molec +
                         scale(net_rearing_manipulation):chick_sex_molec + 
@@ -546,7 +600,7 @@
             m_ass(name = 'Table WEg - weight-netxsex+d14xsex+sex-ratio - scaled', mo = mt1gs, dat = dtg, fixed = c('net_rearing_manipulation','d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
             
             sname = 'Table_TE'
-            o = data.table(rbind(o_mt0g,o_mt14g,,o_mtig,o_mt1g,o_mt0gs,o_mtigs,o_mt1gs))
+            o = data.table(rbind(o_mt0g,o_mt14g,o_mtig,o_mt1g,o_mt0gs,o_mtigs,o_mt1gs))
             aic = o[AIC!=""]
             aic[, AIC := as.numeric(AIC)]
             aic[, deltaAIC := AIC-min(AIC)]
@@ -692,7 +746,7 @@
             m_ass(name = 'Table BEg - BMI-netxsex+d14xsex+sex-ratio - scaled', mo = mt1gs, dat = dtg, fixed = c('net_rearing_manipulation','d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
             
             sname = 'Table_TE'
-            o = data.table(rbind(o_mt0g,o_mt14g,,o_mtig,o_mt1g,o_mt0gs,o_mtigs,o_mt1gs))
+            o = data.table(rbind(o_mt0g,o_mt14g, o_mtig,o_mt1g,o_mt0gs,o_mtigs,o_mt1gs))
             aic = o[AIC!=""]
             aic[, AIC := as.numeric(AIC)]
             aic[, deltaAIC := AIC-min(AIC)]
@@ -838,11 +892,11 @@
             write.xlsx(o, paste0("Output/",sname,'.xlsx'), sheetName='Estimates&AIC')
             #write_xlsx(rbind(o_mt0g,o_mt14g,o_mt0g), paste0("Outputs/",sname,'.xlsx'), sheetName='AICcompar', append = TRUE)
 
-            m_ass(name = 'Table TEPa - weight-netxsex+sex-ratio-net+sex+sex-ratio', mo = mt0g, dat = dtg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+            m_ass(name = 'Table WEPa - weight-netxsex+sex-ratio-net+sex+sex-ratio', mo = mt0g, dat = dtg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
             
-            m_ass(name = 'Table TEPb - weight-d14+sex+sex-ratio', mo = mt14g, dat = dtg, fixed = c('d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+            m_ass(name = 'Table WEPb - weight-d14+sex+sex-ratio', mo = mt14g, dat = dtg, fixed = c('d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
 
-            m_ass(name = 'Table TEPc - weight-netxsex+sex-ratio', mo = mt0gs, dat = dtg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+            m_ass(name = 'Table WEPc - weight-netxsex+sex-ratio', mo = mt0gs, dat = dtg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
     # BODY MASS INDEX - Table BEP
         # prepare data    
             # simple
@@ -906,8 +960,10 @@
             write.xlsx(o, paste0("Output/",sname,'.xlsx'), sheetName='Estimates&AIC')
             #write_xlsx(rbind(o_mb0g,o_mb14g,o_mb0g), paste0("Outputs/",sname,'.xlsx'), sheetName='AICcompar', append = TRUE)
 
-            m_ass(name = 'Table BEPa - BMI-net+sex+sex-ratio', mo = mb0g, dat = dmg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+            m_ass(name = 'Table BEPa - BMI-net+sex+sex-ratio', mo = mb0g, dat = dtg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
         
-            m_ass(name = 'Table BEPb - BMI-d14+sex+sex-ratio', mo = mb14g, dat = dmg, fixed = c('d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+            m_ass(name = 'Table BEPb - BMI-d14+sex+sex-ratio', mo = mb14g, dat = dtg, fixed = c('d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
 
-            m_ass(name = 'Table BEPc - BMI-netxsex+sex-ratio', mo = mb0gs, dat = dmg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+            m_ass(name = 'Table BEPc - BMI-netxsex+sex-ratio', mo = mb0gs, dat = dtg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+
+# END            
