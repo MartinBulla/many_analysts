@@ -79,7 +79,8 @@ BT_data_tidy <-
   # re-name the treatment groups
   mutate(rear_nest_trt = 
            as.factor(ifelse(rear_nest_trt == "5", "increase", 
-                        ifelse(rear_nest_trt == "6", "decrease", "control"))))
+                        ifelse(rear_nest_trt == "6", "decrease", "control")))) %>% 
+  mutate(prop_change_in_brood_size = net_rearing_manipulation/d0_hatch_nest_brood_size)
 
 BT_nest_pairs <- 
   BT_data_tidy %>% 
@@ -96,8 +97,6 @@ BT_nest_pairs <-
   filter(pair_ID_min != pair_ID_max) %>% 
   mutate(pair_ID = paste(pair_ID_min, pair_ID_max, sep = "_")) %>% 
   select(hatch_nest_breed_ID, pair_ID)
-
-# write.csv(BT_nest_pairs, file = "Output/BT_nest_pairs_IDs.csv")
 
 BT_data_tidy <- 
   BT_data_tidy %>% 
@@ -523,7 +522,7 @@ ggarrange(tarsus_plot,
         summary(factor(BT_data_tidy$net_rearing_manipulation)) 
         summary(as.factor(BT_data_tidy$rear_Cs_at_start_of_rearing))
         summary(as.factor(BT_data_tidy$d0_hatch_nest_brood_size))
-        # summary(BT_data_tidy$prop_change_in_brood_size)
+        summary(BT_data_tidy$prop_change_in_brood_size)
 
 
         ggplot(BT_data_tidy, aes(x = net_rearing_manipulation)) + 
@@ -543,26 +542,47 @@ ggarrange(tarsus_plot,
           scale_x_continuous("proportion of dead chicks at day 14\n since start of experiment",
                              breaks = seq(-1,0.3, by = 0.1), 
                              label = seq(-1,0.3, by = 0.1)) + xlab(c(-1, 0.3))
+        
+        ggplot(BT_data_tidy, aes(x = prop_change_in_brood_size,
+                                 fill = rear_nest_trt)) +
+          geom_histogram() + xlim(c(-0.5,0.5))
+        
+        ggplot(BT_data_tidy, aes(x = prop_change_in_brood_size,
+                                 fill = rear_nest_trt)) +
+          geom_histogram() + xlim(c(-0.5,0.5))
 ```
 ```{r, eval = FALSE}
-        # ggplot(BT_data_tidy, aes(x = prop_change_in_brood_size, 
-        #                          fill = rear_nest_trt)) + 
-        #   geom_histogram() + xlim(c(-0.5,0.5))
-
     # cor among  predictors
-      # chick numbers at hatching and day 14    
-        aa = BT_data_tidy[complete.cases(BT_data_tidy),.(rear_Cs_at_start_of_rearing,d14_rear_nest_brood_size )]
+    # chick numbers at hatching and day 14 
+
+# use 'd14_rear_nest_brood_size' in the models (big correlation between the 
+# number of chicks )
+BT_data_tidy %>% 
+  na.omit %>% 
+  select(rear_Cs_at_start_of_rearing,d14_rear_nest_brood_size) %>% 
+  cor()
+
+        ggplot(BT_data_tidy, aes(x = rear_Cs_at_start_of_rearing, y = d14_rear_nest_brood_size)) + 
+          geom_point() +facet_wrap(.~rear_nest_trt) + 
+          geom_smooth(method = 'lm') 
         
-        cor(aa$rear_Cs_at_start_of_rearing, aa$d14_rear_nest_brood_size) # use 'd14_rear_nest_brood_size' in the models
-        ggplot(BT_data_tidy, aes(x = rear_Cs_at_start_of_rearing, y = d14_rear_nest_brood_size)) + geom_point() +facet_wrap(.~rear_nest_trt) + geom_smooth(method = 'lm') 
-        ggplot(BT_data_tidy, aes(x = rear_Cs_at_start_of_rearing, y = rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)) + geom_point() +facet_wrap(.~rear_nest_trt) + geom_smooth(method = 'lm')
+        ggplot(BT_data_tidy, aes(x = rear_Cs_at_start_of_rearing, y = rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)) + 
+          geom_point() +
+          facet_wrap(.~rear_nest_trt) + 
+          geom_smooth(method = 'lm')
 
       # chick numbers at day 14 and net change in chick numbers
-        ggplot(BT_data_tidy, aes(x = rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)) + geom_histogram()        
-        ggplot(BT_data_tidy, aes(x = as.factor(rear_nest_trt), y = rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)) + geom_boxplot()                                            
-        ggplot(BT_data_tidy, aes(x = as.factor(rear_nest_trt), y = (rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)/rear_Cs_at_start_of_rearing)) + geom_boxplot()  
+        ggplot(BT_data_tidy, aes(x = rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)) + 
+          geom_histogram()       
+        
+        ggplot(BT_data_tidy, aes(x = as.factor(rear_nest_trt), y = rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)) + 
+          geom_boxplot()       
+        
+        ggplot(BT_data_tidy, aes(x = as.factor(rear_nest_trt), y = (rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)/rear_Cs_at_start_of_rearing)) + 
+          geom_boxplot()  
 
         cor(BT_data_tidy$d14_rear_nest_brood_size, BT_data_tidy$net_rearing_manipulation)
+        
         ggplot(BT_data_tidy, aes( y = net_rearing_manipulation, x = d14_rear_nest_brood_size)) +
             geom_point() + stat_smooth(method = 'lm') + facet_wrap(.~ rear_nest_trt)
 
