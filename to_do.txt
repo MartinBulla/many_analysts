@@ -1,3 +1,2 @@
 
-Shall we provide protocols and other text as txt, md or html?
-Recode some variables (e.g. like sex - m, f, u - unknown)
+Tweak the links to our htmls
