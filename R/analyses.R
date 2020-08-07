@@ -4,54 +4,6 @@
     reml = TRUE # models fitted with REML (TRUE) or ML (FALSE)
     source(here::here('R/prepare_data.R'))
     
-# additional data checking
-    # NAs
-        summary(a) 
-        summary(factor(a$chick_sex_molec))
-        length(a$hatch_mom_Ring[is.na(a$hatch_mom_Ring)])
-        length(a$genetic_dad[is.na(a$genetic_dad)])
-
-    # distributions
-        summary(factor(a$d14_rear_nest_brood_size)) 
-        summary(factor(a$net_rearing_manipulation)) 
-        summary(as.factor(a$rear_Cs_at_start_of_rearing))
-        summary(as.factor(a$d0_hatch_nest_brood_size))
-        summary(a$prop_change_in_brood_size)
-
-
-        ggplot(a, aes(x = net_rearing_manipulation)) + geom_histogram()
-        ggplot(a, aes(x = d14_rear_nest_brood_size-rear_Cs_at_start_of_rearing, fill = treatment)) + geom_histogram(position='dodge', bins = 12) + scale_x_continuous("dead chicks at day 14\n since start of experiment", breaks = seq(-10,1, by = 1), label = seq(-10,1, by = 1)) + xlab(c(-10, 1)) + theme_MB # in one case the brood size has increased by one chick
-
-        ggplot(a, aes(x = (d14_rear_nest_brood_size-rear_Cs_at_start_of_rearing)/rear_Cs_at_start_of_rearing, fill = treatment)) + geom_histogram(position='dodge', bins = 12) + scale_x_continuous("proportion of dead chicks at day 14\n since start of experiment",breaks = seq(-1,0.3, by = 0.1), label = seq(-1,0.3, by = 0.1)) + xlab(c(-1, 0.3)) + theme_MB
-
-        ggplot(a, aes(x = prop_change_in_brood_size, fill = treatment)) + geom_histogram() +xlim(c(-0.5,0.5))+ theme_MB
-
-    # cor among  predictors
-      # chick numbers at hatching and day 14    
-        aa = a[complete.cases(a),.(rear_Cs_at_start_of_rearing,d14_rear_nest_brood_size )]
-        cor(aa$rear_Cs_at_start_of_rearing, aa$d14_rear_nest_brood_size) # use 'd14_rear_nest_brood_size' in the models
-        ggplot(a, aes(x = rear_Cs_at_start_of_rearing, y = d14_rear_nest_brood_size)) + geom_point() +facet_wrap(.~rear_nest_trt) + geom_smooth(method = 'lm') 
-        ggplot(a, aes(x = rear_Cs_at_start_of_rearing, y = rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)) + geom_point() +facet_wrap(.~rear_nest_trt) + geom_smooth(method = 'lm')
-
-      # chick numbers at day 14 and net change in chick numbers
-        ggplot(a, aes(x = rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)) + geom_histogram()        
-        ggplot(a, aes(x = as.factor(rear_nest_trt), y = rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)) + geom_boxplot()                                            
-        ggplot(a, aes(x = as.factor(rear_nest_trt), y = (rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)/rear_Cs_at_start_of_rearing)) + geom_boxplot()  
-
-        cor(a$d14_rear_nest_brood_size, a$net_rearing_manipulation)
-        ggplot(a, aes( y = net_rearing_manipulation, x = d14_rear_nest_brood_size)) +
-            geom_point() + stat_smooth(method = 'lm') + facet_wrap(.~ treatment)
-
-
-        cor(a$brood_sex_ratio, a$net_rearing_manipulation)    
-        ggplot(a, aes( y = net_rearing_manipulation, x = brood_sex_ratio)) +
-            geom_point() + stat_smooth(method = 'lm') + facet_wrap(.~ treatment)
-
-      # chick mortality dataset
-      ggplot(mou, aes(x = rear_nest_OH_l)) + geom_histogram() +theme_MB
-      ggplot(mou, aes(x = net_rearing_manipulation, y = brood_sex_ratio)) + geom_point() + geom_smooth() +theme_MB
-      cor(mou$brood_sex_ratio, mou$net_rearing_manipulation)
-  
 # MORTALITY - Table M 
     # prepare data
         # net_rearing_namipulation as continues
