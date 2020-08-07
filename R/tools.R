@@ -14,7 +14,7 @@ using<-function(...) {
 
 
 # load/install packages
-  packages = c('anytime','arm','data.table', 'effects', 'foreach', 'ggplot2', 'ggthemes', 'glue',  'grid', 'here', 'htmlTable', 'lattice', 'lubridate', 'magrittr', 'multcomp', 'plyr','raster','stringr','xlsx','zoo')
+  packages = c('anytime','arm','data.table', 'effects', 'foreach', 'ggplot2', 'ggthemes', 'glue',  'grid', 'here', 'htmlTable', 'lattice', 'lubridate', 'magrittr', 'multcomp', 'performance','plyr','raster','stringr','xlsx','zoo')
   sapply(packages, function(x) suppressPackageStartupMessages(using(x)) )
 
 # Customized ggplot theme
@@ -89,15 +89,19 @@ using<-function(...) {
      ri$upr_r = paste0(ri$upr_r,'%')
   
   x = rbind(oii,ri)
-    x$N = NA
+    x$N = ""
     x$N[1] = N
     if (aic == TRUE){   
-        x$AIC = NA
+        x$AIC = ""
         x$AIC[1]=AIC(update(model,REML = FALSE))
-        x$delta = NA
-        x$prob = NA
-        x$ER = NA
+        x$delta = ""
+        x$prob = ""
+        x$ER = ""
         }
+     x$R2_mar = ""
+     x$R2_con = ""
+     x$R2_mar [1]= r2_nakagawa(model)$R2_marginal
+     x$R2_con [1]= r2_nakagawa(model)$R2_conditional
     return(x)
   } 
 # model assumption function
