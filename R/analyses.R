@@ -54,7 +54,24 @@
   
 # MORTALITY 
     # prepare data
-        
+        # net_rearing_namipulation as continues
+        m = lmer(change_chick_n ~ net_rearing_manipulation  +       
+                      brood_sex_ratio +     
+                      (1|day14_measurer) + (1|rear_area) +      
+                      (1|rear_nest_OH_l) + (1|hatch_year),       
+                      data = mou, REML = reml        
+                 )      
+        summary(m)
+        summary(glht(m))
+        plot(allEffects(m))
+      
+        # net_rearing_namipulation as a factor      
+         mf = lmer(change_chick_n ~ net_rearing_manipulation_factor  +       
+                      brood_sex_ratio +     
+                      (1|day14_measurer) + (1|rear_area) +      
+                      (1|rear_nest_OH_l) + (1|hatch_year),       
+                      data = mou, REML = reml)
+
     # TABLE M
         # Table T1 - main text - and model assumptions
         o_m = m_out(name = "mortality", model = m, round_ = 3, nsim = 5000, aic = TRUE, N = nrow(mou))
@@ -69,6 +86,8 @@
 # TARSUS 
     # prepare data
         dtg = a[complete.cases(a),.(day_14_tarsus_length, net_rearing_manipulation, net_rearing_manipulation_factor, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID, hatch_mom_Ring, genetic_dad)]
+
+        cor(dtg$d14_rear_nest_brood_size, dtg$net_rearing_manipulation)
         # tarsus without sex interaction and genetic control
             # main text model simple
                 mt0g =  lmer(day_14_tarsus_length ~ 
