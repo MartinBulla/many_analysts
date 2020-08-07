@@ -35,9 +35,17 @@
         a[, brood_sex_ratio := sum(sex)/length(sex), by = rear_nest_breed_ID]
     # body mass index
         a[, body_mass_index := day_14_weight/day_14_tarsus_length^2]
+
 # dataset for chick mortality
     mmo = a[complete.cases(a),.(change_chick_n, net_rearing_manipulation, d14_rear_nest_brood_size, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID)]
     mou = unique(mmo)
     nrow(mou)
     length(unique(mmo$rear_nest_breed_ID))
     mou[, net_rearing_manipulation_factor := as.factor(net_rearing_manipulation)]
+
+# dataset for paired analyses
+    p = fread('Data/blue_tit_nest_pairs_IDs.csv') 
+    p = merge(a,p[,.(rear_nest_breed_ID, pair_ID)], all.x = TRUE)
+    p = p[!is.na(pair_ID)]
+    
+# END
