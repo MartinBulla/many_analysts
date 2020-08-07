@@ -51,8 +51,21 @@ We then specified three subsets of models, each with one of the size variables a
                         REML = TRUE
                         )
 ``` 
+We then specified a model - as indicated in our [a priori protocol](https://github.com/MartinBulla/many_analysts/blob/master/Methods/Protocol.Rmd)] - with sex in interaction with net change in chick numbers 'net_rearing_manipulation' to verify whether the effects of the treatment differs between females and males.
 
-Note that these models differ from those proposed in the [a priori protocol](https://github.com/MartinBulla/many_analysts/blob/master/Methods/Protocol.Rmd)] because we followed our a priori decisions about analyses. There were not enough data for the number of chicks at the start of the experiment ('rear_Cs_at_start_of_rearing') and hence we have not used it in the models. The correlation between 'net_rearing_manipulation' and 'd14_rear_nest_brood_size' was 0.68, i.e. higher than our predefined 0.6 threshold). Thus, according to the [a priori protocol](https://github.com/MartinBulla/many_analysts/blob/master/Methods/Protocol.Rmd)] we used only one variable. As net change in chick number captures the acutal experimental manipulation, we use this variable through out. Note however, that we have also fitted a model with 'd14_rear_nest_brood_size' instead of 'net_rearing_manipulation', which generated same results (see [Table T, Table W and Table B](https://github.com/MartinBulla/many_analysts/tree/master/Output). As indicated in our [a priori protocol](https://github.com/MartinBulla/many_analysts/blob/master/Methods/Protocol.Rmd)] we have also specified a model where sex was in interaction with net change in chick numbers.
+```r
+    lmer(day_14_tarsus_length or day_14_weight or body_mass_index ~ 
+                        net_rearing_manipulation*chick_sex_molec + 
+                        brood_sex_ratio +
+                        (1|day14_measurer) + (1|rear_area) + 
+                        (1|rear_nest_OH_l) + (1|hatch_year)  +
+                        (1|rear_nest_breed_ID) +
+                        (1|hatch_mom_Ring) + (1|genetic_dad),
+                        REML = TRUE
+                        )
+``` 
+
+Note that the above described models differ from those proposed in the [a priori protocol](https://github.com/MartinBulla/many_analysts/blob/master/Methods/Protocol.Rmd)] because we followed our a priori decisions about analyses. There were not enough data for the number of chicks at the start of the experiment ('rear_Cs_at_start_of_rearing') and hence we have not used it in the models. The correlation between 'net_rearing_manipulation' and 'd14_rear_nest_brood_size' was 0.68, i.e. higher than our predefined 0.6 threshold). Thus, according to the [a priori protocol](https://github.com/MartinBulla/many_analysts/blob/master/Methods/Protocol.Rmd)] we used only one variable. As net change in chick number captures the actual experimental manipulation, we use this variable through out. Note however, that we have also fitted a model with 'd14_rear_nest_brood_size' instead of 'net_rearing_manipulation', which generated same results (see [Table T, Table W and Table B](https://github.com/MartinBulla/many_analysts/tree/master/Output). 
 
 
 ## (3) Exploratory models
