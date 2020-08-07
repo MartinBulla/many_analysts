@@ -87,134 +87,50 @@
         dtg = a[complete.cases(a),.(day_14_tarsus_length, net_rearing_manipulation, net_rearing_manipulation_factor, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID, hatch_mom_Ring, genetic_dad)]
 
         cor(dtg$d14_rear_nest_brood_size, dtg$net_rearing_manipulation)
-        # tarsus without sex interaction and genetic control
-            # main text model simple
-                mt0g =  lmer(day_14_tarsus_length ~ 
-                    net_rearing_manipulation +  
-                    chick_sex_molec + 
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID) +
-                    (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dtg, REML = reml
-                    )
-                summary(mt0g) 
-                summary(glht(mt0g))
-                plot(allEffects(mt0g))
+        
+        # main text model simple
+            mt0g =  lmer(day_14_tarsus_length ~ 
+                net_rearing_manipulation +  
+                chick_sex_molec + 
+                brood_sex_ratio +
+                (1|day14_measurer) + (1|rear_area) + 
+                (1|rear_nest_OH_l) + (1|hatch_year)  +
+                (1|rear_nest_breed_ID) +
+                (1|hatch_mom_Ring) + (1|genetic_dad),
+                data = dtg, REML = reml
+                )
+            summary(mt0g) 
+            summary(glht(mt0g))
+            plot(allEffects(mt0g))
 
-            # net_rearing_manipulation exchanged for d14_rear_nest_brood_size (convergence warning, but see extended Table Te where the variables were scaled and model converged well)
-                mt14g =  lmer(day_14_tarsus_length ~ 
-                    d14_rear_nest_brood_size +  
-                    chick_sex_molec + 
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID) + (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dtg, REML = reml
-                    )
-                summary(mt14g) 
-                summary(glht(mt14g))
-                plot(allEffects(mt14g))
+        # net_rearing_manipulation exchanged for d14_rear_nest_brood_size (convergence warning, but see extended Table Te where the variables were scaled and model converged well)
+            mt14g =  lmer(day_14_tarsus_length ~ 
+                d14_rear_nest_brood_size +  
+                chick_sex_molec + 
+                brood_sex_ratio +
+                (1|day14_measurer) + (1|rear_area) + 
+                (1|rear_nest_OH_l) + (1|hatch_year)  +
+                (1|rear_nest_breed_ID) + (1|hatch_mom_Ring) + (1|genetic_dad),
+                data = dtg, REML = reml
+                )
+            summary(mt14g) 
+            summary(glht(mt14g))
+            plot(allEffects(mt14g))
 
-            # extended data model where net_rearing_manipulation is a factor
-                mt0fg =  lmer(day_14_tarsus_length ~ 
-                    net_rearing_manipulation_factor +  
-                    chick_sex_molec + 
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID) + (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dtg, REML = reml
-                    )
-                summary(mt0fg) 
-                summary(glht(mt0fg))
-                plot(allEffects(mt0fg))
-                
-            # extended data models (checking if net_rearing_manipulation changes with d14_rear_nest_brood_size - and initial model dropped because of a priori decision to use only one of the >0.6 correlated variables)
-                 # interaction
-                   mtig =  lmer(day_14_tarsus_length ~ 
-                    scale(net_rearing_manipulation) * scale(d14_rear_nest_brood_size) +
-                    chick_sex_molec + 
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID) +
-                    (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dtg,  REML = reml
-                    )
-                   summary(mtig) 
-                   summary(glht(mtig))
-                   plot(allEffects(mtig))
-
-                  # no interaction
-                   mt1g =  lmer(day_14_tarsus_length ~ 
-                    scale(net_rearing_manipulation) + scale(d14_rear_nest_brood_size) +
-                    chick_sex_molec + 
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID)+
-                    (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dtg, REML = reml
-                    )
-                   summary(mt1g) 
-                   summary(glht(mt1g))
-                   plot(allEffects(mt1g))   
-
-                  AIC(update(mt0g,REML = FALSE),update(mtig, REML = FALSE), update(mt1g, REML = FALSE))
-        # tarsus with sex interaction and genetic control
-            # main text model simple - and the single relevant one
-                mt0gs =  lmer(day_14_tarsus_length ~ 
-                    net_rearing_manipulation*chick_sex_molec + 
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID)+
-                    (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dtg, REML = reml
-                    )
-                summary(mt0gs) 
-                summary(glht(mt0gs))
-                plot(allEffects(mt0gs))
-            # extended data models (checking if net_rearing_manipulation changes with d14_rear_nest_brood_size - and initial model dropped because of a priori decision to use only one of the >0.6 correlated variables)
-                 # interaction
-                   mtigs =  lmer(day_14_tarsus_length ~ 
-                    scale(net_rearing_manipulation) * scale(d14_rear_nest_brood_size)*chick_sex_molec + 
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID)+
-                    (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dtg, REML = reml
-                    )
-                   summary(mtigs) 
-                   summary(glht(mtigs))
-                   plot(allEffects(mtigs))
-
-                  # no interaction
-                   mt1gs =  lmer(day_14_tarsus_length ~ 
-                    scale(net_rearing_manipulation) + scale(d14_rear_nest_brood_size) +
-                    chick_sex_molec +
-                    scale(net_rearing_manipulation):chick_sex_molec + 
-                    scale(d14_rear_nest_brood_size):chick_sex_molec +
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID)+
-                    (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dtg, REML = reml
-                    )
-                   summary(mt1gs) 
-                   summary(glht(mt1gs))
-                   plot(allEffects(mt1gs))   
-        aic2 = data.table(AIC(update(mt0g,REML = FALSE),update(mtig, REML = FALSE), update(mt1g, REML = FALSE),
-            update(mt0gs,REML = FALSE),update(mtigs, REML = FALSE), update(mt1gs, REML = FALSE)), model = rownames(AIC(update(mt0g,REML = FALSE),update(mtig, REML = FALSE), update(mt1g, REML = FALSE),
-            update(mt0gs,REML = FALSE),update(mtigs, REML = FALSE), update(mt1gs, REML = FALSE), update(mt14g,REML = FALSE), update(mt0fg,REML = FALSE))))           
-        aic2[, deltaAIC := AIC-min(AIC)]
-        aic2[, prob := round(exp(-0.5*deltaAIC)/sum(exp(-0.5*deltaAIC)),2)]
-        aic2[, ER := round(max(prob)/prob, 2)]
-        aic2[order(deltaAIC)]
+        # main text model simple with sex interaction
+            mt0gs =  lmer(day_14_tarsus_length ~ 
+                net_rearing_manipulation*chick_sex_molec + 
+                brood_sex_ratio +
+                (1|day14_measurer) + (1|rear_area) + 
+                (1|rear_nest_OH_l) + (1|hatch_year)  +
+                (1|rear_nest_breed_ID)+
+                (1|hatch_mom_Ring) + (1|genetic_dad),
+                data = dtg, REML = reml
+                )
+            summary(mt0gs) 
+            summary(glht(mt0gs))
+            plot(allEffects(mt0gs))
+   
     # Table T - main text - and model assumptions
         o_mt0g = m_out(name = "a - net chick", model = mt0g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
         o_mt14g  = m_out(name = "b - day 14 chick #", model = mt14g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
@@ -245,135 +161,50 @@
 # WEIGHT - Table W
     # prepare data
         dwg = a[complete.cases(a),.(day_14_weight, net_rearing_manipulation, net_rearing_manipulation_factor, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID, hatch_mom_Ring, genetic_dad)]
-        # weight without sex interaction and genetic control
-            # main text model simple
-                mw0g =  lmer(day_14_weight ~ 
-                    net_rearing_manipulation +  
-                    chick_sex_molec + 
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID) +
-                    (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dwg, REML = reml
-                    )
-                summary(mw0g) 
-                summary(glht(mw0g))
-                plot(allEffects(mw0g))
+        # main text model simple
+            mw0g =  lmer(day_14_weight ~ 
+                net_rearing_manipulation +  
+                chick_sex_molec + 
+                brood_sex_ratio +
+                (1|day14_measurer) + (1|rear_area) + 
+                (1|rear_nest_OH_l) + (1|hatch_year)  +
+                (1|rear_nest_breed_ID) +
+                (1|hatch_mom_Ring) + (1|genetic_dad),
+                data = dwg, REML = reml
+                )
+            summary(mw0g) 
+            summary(glht(mw0g))
+            plot(allEffects(mw0g))
 
-            # main text CHECK model
-                mw14g =  lmer(day_14_weight ~ 
-                    d14_rear_nest_brood_size +  
-                    chick_sex_molec + 
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID) + (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dwg, REML = reml
-                    )
-                summary(mw14g) 
-                summary(glht(mw14g))
-                plot(allEffects(mw14g))
+        # main text CHECK model
+            mw14g =  lmer(day_14_weight ~ 
+                d14_rear_nest_brood_size +  
+                chick_sex_molec + 
+                brood_sex_ratio +
+                (1|day14_measurer) + (1|rear_area) + 
+                (1|rear_nest_OH_l) + (1|hatch_year)  +
+                (1|rear_nest_breed_ID) + (1|hatch_mom_Ring) + (1|genetic_dad),
+                data = dwg, REML = reml
+                )
+            summary(mw14g) 
+            summary(glht(mw14g))
+            plot(allEffects(mw14g))
 
-            # extended data model where net_rearing_manipulation is a factor
-                mw0fg =  lmer(day_14_weight ~ 
-                    net_rearing_manipulation_factor +  
-                    chick_sex_molec + 
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID) + (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dwg, REML = reml
-                    )
-                summary(mw0fg) 
-                summary(glht(mw0fg))
-                plot(allEffects(mw0fg))
-                
-            # extended data models (checking if net_rearing_manipulation changes with d14_rear_nest_brood_size - and initial model dropped because of a priori decision to use only one of the >0.6 correlated variables)
-                 # interaction
-                   mwig =  lmer(day_14_weight ~ 
-                    scale(net_rearing_manipulation) * scale(d14_rear_nest_brood_size) +
-                    chick_sex_molec + 
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID) +
-                    (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dwg,  REML = reml
-                    )
-                   summary(mwig) 
-                   summary(glht(mwig))
-                   plot(allEffects(mwig))
-
-                  # no interaction
-                   mw1g =  lmer(day_14_weight ~ 
-                    scale(net_rearing_manipulation) + scale(d14_rear_nest_brood_size) +
-                    chick_sex_molec + 
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID)+
-                    (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dwg, REML = reml
-                    )
-                   summary(mw1g) 
-                   summary(glht(mw1g))
-                   plot(allEffects(mw1g))   
-
-                  AIC(update(mw0g,REML = FALSE),update(mwig, REML = FALSE), update(mw1g, REML = FALSE))
-        # weight with sex interaction and genetic control
-            # main text model simple - and the single relevant one
-                mw0gs =  lmer(day_14_weight ~ 
-                    net_rearing_manipulation*chick_sex_molec + 
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID)+
-                    (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dwg, REML = reml
-                    )
-                summary(mw0gs) 
-                summary(glht(mw0gs))
-                plot(allEffects(mw0gs))
-            # extended data models (checking if net_rearing_manipulation changes with d14_rear_nest_brood_size - and initial model dropped because of a priori decision to use only one of the >0.6 correlated variables)
-                 # interaction
-                   mwigs =  lmer(day_14_weight ~ 
-                    scale(net_rearing_manipulation) * scale(d14_rear_nest_brood_size)*chick_sex_molec + 
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID)+
-                    (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dwg, REML = reml
-                    )
-                   summary(mwigs) 
-                   summary(glht(mwigs))
-                   plot(allEffects(mwigs))
-
-                  # no interaction
-                   mw1gs =  lmer(day_14_weight ~ 
-                    scale(net_rearing_manipulation) + scale(d14_rear_nest_brood_size) +
-                    chick_sex_molec +
-                    scale(net_rearing_manipulation):chick_sex_molec + 
-                    scale(d14_rear_nest_brood_size):chick_sex_molec +
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID)+
-                    (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dwg, REML = reml
-                    )
-                   summary(mw1gs) 
-                   summary(glht(mw1gs))
-                   plot(allEffects(mw1gs))   
-        aic2 = data.table(AIC(update(mw0g,REML = FALSE),update(mwig, REML = FALSE), update(mw1g, REML = FALSE),
-            update(mw0gs,REML = FALSE),update(mwigs, REML = FALSE), update(mw1gs, REML = FALSE)), model = rownames(AIC(update(mw0g,REML = FALSE),update(mwig, REML = FALSE), update(mw1g, REML = FALSE),
-            update(mw0gs,REML = FALSE),update(mwigs, REML = FALSE), update(mw1gs, REML = FALSE), update(mw14g,REML = FALSE), update(mw0fg,REML = FALSE))))           
-        aic2[, deltaAIC := AIC-min(AIC)]
-        aic2[, prob := round(exp(-0.5*deltaAIC)/sum(exp(-0.5*deltaAIC)),2)]
-        aic2[, ER := round(max(prob)/prob, 2)]
-        aic2[order(deltaAIC)]
-    # Table W - main text - and model assumptions
+       
+        # main text model simple with sex interaction
+            mw0gs =  lmer(day_14_weight ~ 
+                net_rearing_manipulation*chick_sex_molec + 
+                brood_sex_ratio +
+                (1|day14_measurer) + (1|rear_area) + 
+                (1|rear_nest_OH_l) + (1|hatch_year)  +
+                (1|rear_nest_breed_ID)+
+                (1|hatch_mom_Ring) + (1|genetic_dad),
+                data = dwg, REML = reml
+                )
+            summary(mw0gs) 
+            summary(glht(mw0gs))
+            plot(allEffects(mw0gs))
+     # Table W - main text - and model assumptions
         o_mw0g = m_out(name = "a - net chick", model = mw0g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
         o_mw14g  = m_out(name = "b - day 14 chick #", model = mw14g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
         o_mw0gs = m_out(name = "c - (a) with sex interaction", model = mw0gs, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)   
@@ -397,138 +228,54 @@
         m_ass(name = 'Table Wb - weight-d14+sex+sex-ratio', mo = mw14g, dat = dwg, fixed = c('d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
 
         m_ass(name = 'Table Wc - weight-netxsex+sex-ratio', mo = mw0gs, dat = dwg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
-    # Table We - Extended material
 # BODY MASS INDEX - Table B
     # prepare data
         dmg = a[complete.cases(a),.(body_mass_index, net_rearing_manipulation, net_rearing_manipulation_factor, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID, hatch_mom_Ring, genetic_dad)]
-        # without sex interaction and genetic control
-            # main text model simple
-                mb0g =  lmer(body_mass_index ~ 
-                    net_rearing_manipulation +  
-                    chick_sex_molec + 
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID) +
-                    (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dmg, REML = reml
-                    )
-                summary(mb0g) 
-                summary(glht(mb0g))
-                plot(allEffects(mb0g))
+        # main text model simple
+            mb0g =  lmer(body_mass_index ~ 
+                net_rearing_manipulation +  
+                chick_sex_molec + 
+                brood_sex_ratio +
+                (1|day14_measurer) + (1|rear_area) + 
+                (1|rear_nest_OH_l) + (1|hatch_year)  +
+                (1|rear_nest_breed_ID) +
+                (1|hatch_mom_Ring) + (1|genetic_dad),
+                data = dmg, REML = reml
+                )
+            summary(mb0g) 
+            summary(glht(mb0g))
+            plot(allEffects(mb0g))
 
-            # extended data model where net_rearing_manipulation exchanged for d14_rear_nest_brood_size (convergence issues)
-                mb14g =  lmer(body_mass_index ~ 
-                    d14_rear_nest_brood_size +  
-                    chick_sex_molec + 
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID)+
-                    (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dmg, REML = reml
-                    )
-                summary(mb14g) 
-                summary(glht(mb14g))
-                plot(allEffects(mb14g))
+        # net_rearing_manipulation exchanged for d14_rear_nest_brood_size (convergence issues)
+            mb14g =  lmer(body_mass_index ~ 
+                d14_rear_nest_brood_size +  
+                chick_sex_molec + 
+                brood_sex_ratio +
+                (1|day14_measurer) + (1|rear_area) + 
+                (1|rear_nest_OH_l) + (1|hatch_year)  +
+                (1|rear_nest_breed_ID)+
+                (1|hatch_mom_Ring) + (1|genetic_dad),
+                data = dmg, REML = reml
+                )
+            summary(mb14g) 
+            summary(glht(mb14g))
+            plot(allEffects(mb14g))
 
-            # extended data model where net_rearing_manipulation is a factor
-                mb0fg =  lmer(body_mass_index ~ 
-                    net_rearing_manipulation_factor +  
-                    chick_sex_molec + 
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID)+
-                    (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dmg, REML = reml
-                    )
-                summary(mb0fg) 
-                summary(glht(mb0fg))
-                plot(allEffects(mb0fg))
-                
-            # extended data models (checking if net_rearing_manipulation changes with d14_rear_nest_brood_size - and initial model dropped because of a priori decision to use only one of the >0.6 correlated variables)
-                 # interaction
-                   mbig =  lmer(body_mass_index ~ 
-                    scale(net_rearing_manipulation) * scale(d14_rear_nest_brood_size) +
-                    chick_sex_molec + 
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID) +
-                    (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dmg,  REML = reml
-                    )
-                   summary(mbig) 
-                   summary(glht(mbig))
-                   plot(allEffects(mbig))
-
-                  # no interaction
-                   mb1g =  lmer(body_mass_index ~ 
-                    scale(net_rearing_manipulation) + scale(d14_rear_nest_brood_size) +
-                    chick_sex_molec + 
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID)+
-                    (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dmg, REML = reml
-                    )
-                   summary(mb1g) 
-                   summary(glht(mb1g))
-                   plot(allEffects(mb1g))   
-
-                  AIC(update(mb0g,REML = FALSE),update(mbig, REML = FALSE), update(mb1g, REML = FALSE))
-        # with sex interaction and genetic control
-            # main text model simple - and the single relevant one
-                mb0gs =  lmer(body_mass_index ~ 
-                    net_rearing_manipulation*chick_sex_molec + 
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID)+
-                    (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dmg, REML = reml
-                    )
-                summary(mb0gs) 
-                summary(glht(mb0gs))
-                plot(allEffects(mb0gs))
-            # extended data models (checking if net_rearing_manipulation changes with d14_rear_nest_brood_size - and initial model dropped because of a priori decision to use only one of the >0.6 correlated variables)
-                 # interaction
-                   mbigs =  lmer(body_mass_index ~ 
-                    scale(net_rearing_manipulation) * scale(d14_rear_nest_brood_size)*chick_sex_molec + 
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID)+
-                    (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dmg, REML = reml
-                    )
-                   summary(mbigs) 
-                   summary(glht(mbigs))
-                   plot(allEffects(mbigs))
-
-                  # no interaction
-                   mb1gs =  lmer(body_mass_index ~ 
-                    scale(net_rearing_manipulation) + scale(d14_rear_nest_brood_size) +
-                    chick_sex_molec +
-                    scale(net_rearing_manipulation):chick_sex_molec + 
-                    scale(d14_rear_nest_brood_size):chick_sex_molec +
-                    brood_sex_ratio +
-                    (1|day14_measurer) + (1|rear_area) + 
-                    (1|rear_nest_OH_l) + (1|hatch_year)  +
-                    (1|rear_nest_breed_ID)+
-                    (1|hatch_mom_Ring) + (1|genetic_dad),
-                    data = dmg, REML = reml
-                    )
-                   summary(mb1gs) 
-                   summary(glht(mb1gs))
-                   plot(allEffects(mb1gs))   
-        aic3 = data.table(AIC(update(mb0g,REML = FALSE),update(mbig, REML = FALSE), update(mb1g, REML = FALSE), update(mb0gs,REML = FALSE),update(mbigs, REML = FALSE), update(mb1gs, REML = FALSE)), model = rownames(AIC(update(mb0g,REML = FALSE),update(mbig, REML = FALSE), update(mb1g, REML = FALSE),update(mb0gs,REML = FALSE),update(mbigs, REML = FALSE), update(mb1gs, REML = FALSE), update(mb14g, REML = FALSE), update(mb0fg,REML = FALSE))))           
-        aic3[, deltaAIC := AIC-min(AIC)]
-        aic3[, prob := round(exp(-0.5*deltaAIC)/sum(exp(-0.5*deltaAIC)),2)]
-        aic3[, ER := round(max(prob)/prob, 2)]
-        aic3[order(deltaAIC)]
+        
+        # main text model simple with sex interaction
+            mb0gs =  lmer(body_mass_index ~ 
+                net_rearing_manipulation*chick_sex_molec + 
+                brood_sex_ratio +
+                (1|day14_measurer) + (1|rear_area) + 
+                (1|rear_nest_OH_l) + (1|hatch_year)  +
+                (1|rear_nest_breed_ID)+
+                (1|hatch_mom_Ring) + (1|genetic_dad),
+                data = dmg, REML = reml
+                )
+            summary(mb0gs) 
+            summary(glht(mb0gs))
+            plot(allEffects(mb0gs))
+       
     # Table B - main text - and model assumptions
         o_mb0g = m_out(name = "a - net chick", model = mb0g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
         o_mb14g  = m_out(name = "b - day 14 chick #", model = mb14g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
