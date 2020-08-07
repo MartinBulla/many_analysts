@@ -37,7 +37,7 @@ We specified the change in chick number in the rearing nests ('change_chick_n') 
 ## (2) Chick size models
 The dataset contained only one point (day 14) chick size measurements: tarsus length ('day_14_tarsus_length') and body mass ('day_14_weight') Thus, we could not have estimated the actual growth rate given the treatment. We thus infer the growth differences based on treatment only. In addition to tarsus lenght and body mass, we calculated a composite variable a body mass index ('body_mass_index') as body mass divided by square of tarsus length. As in humans, this variable shall control for large chicks being heavier than small chicks (i.e. shall capture leanness or chubbiness of an individual).
 
-We then specified three subsets of models, each with one of the size variables as response. The number of chicks to enlarge or reduce the brood ('net_rearing_manipulation'; range -4 - 4, median 0; note that zero indicates the control nests), chick sex ('chick_sex_molec'; m - male, f - female, u - unknown), and brood sex ratio ('brood_sex_ratio'; range 0-1, median 0.5) as explanatory variables. Brood sex ratio was calculated as proportion of males in the nest (1 = all males, 0 = all females), while indicating unknown sex of chicks as 0.5. We specified the measurer ('day14_measurer'), the compartment of the study are ('rear_area'), the year ('hatch_year'), the day on which the rear nest hatched left centered within year, i.e. minimum day within each year subtracted from year hatch day of that given year (rear_nest_OH_l), the identification of rearing nest ('rear_nest_breed_ID') and of genetic parents ('hatch_mom_Ring' and 'genetic_dad') as random intercepts. Such data were available for 2550 nests.
+We then specified three subsets of models, each with one of the size variables as a response. The number of chicks to enlarge or reduce the brood ('net_rearing_manipulation'; range -4 - 4, median 0; note that zero indicates the control nests) was specified as an explanatory variable, testing for the treatment effect. We controlled the model for chick sex ('chick_sex_molec'; m - male, f - female, u - unknown), and brood sex ratio ('brood_sex_ratio'; range 0-1, median 0.5) because female and male blue tit chicks grow differently [@Mainwaring2010]. Brood sex ratio was calculated as proportion of males in the nest (1 = all males, 0 = all females), while indicating unknown sex of chicks as 0.5. We also controlled for multiple sampling (pseudo-replication) by specifying the measurer ('day14_measurer'), the compartment of the study are ('rear_area'), the year ('hatch_year'), the day on which the rear nest hatched left centered within year, i.e. minimum day within each year subtracted from year hatch day of that given year (rear_nest_OH_l), the identification of rearing nest ('rear_nest_breed_ID') and of genetic parents ('hatch_mom_Ring' and 'genetic_dad') as random intercepts. Such data were available for 2550 nests.
 
 ```r
     lmer(day_14_tarsus_length or day_14_weight or body_mass_index ~ 
@@ -55,113 +55,14 @@ We then specified three subsets of models, each with one of the size variables a
 Note that these models differ from those proposed in the [a priori protocol](https://github.com/MartinBulla/many_analysts/blob/master/Methods/Protocol.Rmd)] because we followed our a priori decisions about analyses. There were not enough data for the number of chicks at the start of the experiment ('rear_Cs_at_start_of_rearing') and hence we have not used it in the models. The correlation between 'net_rearing_manipulation' and 'd14_rear_nest_brood_size' was 0.68, i.e. higher than our predefined 0.6 threshold). Thus, according to the [a priori protocol](https://github.com/MartinBulla/many_analysts/blob/master/Methods/Protocol.Rmd)] we used only one variable. As net change in chick number captures the acutal experimental manipulation, we use this variable through out. Note however, that we have also fitted a model with 'd14_rear_nest_brood_size' instead of 'net_rearing_manipulation', which generated same results (see [Table T, Table W and Table B](https://github.com/MartinBulla/many_analysts/tree/master/Output). As indicated in our [a priori protocol](https://github.com/MartinBulla/many_analysts/blob/master/Methods/Protocol.Rmd)] we have also specified a model where sex was in interaction with net change in chick numbers.
 
 
-## (3) Extended material models
+## (3) Exploratory models
 To explore whether the results are consistent even if we specify the models regardless of our a priori assumptions, we have fitted the Chick size models adding 'd14_rear_nest_brood_size' to the above described model and another set of models specifying interaction between  'net_rearing_manipulation' and 'd14_rear_nest_brood_size'. These results (see Table Te, Table We, Table Be) were similar to those from the initial, simple main text models ([Table T, Table W and Table B](https://github.com/MartinBulla/many_analysts/tree/master/Output)).  
 
 # Statistical analyses
 We used R version 4.0.2 [@R-Core-Team2020] for all statistical analyses and the ‘lme4’ package (Bates et al. 2015) for fitting the mixed-effect models using restricted maximum likelihood (for AIC comparison using maximum likelihood). We used the 'sim' function from the ‘arm’ package and a non-informative prior-distribution (Gelman and Hill 2007; Gelman and Su 2018) to create a sample of 5,000 simulated values for each model parameter (i.e. posterior distribution). We report effect sizes and model predictions by the medians, and the uncertainty of the estimates and predictions by the Bayesian 95% credible intervals represented by the 2.5 and 97.5 percentiles (95%CI) from the posterior distribution of 5,000 simulated or predicted values. All results are reproducible with the open access data and code available from Open Science Framework (Bulla 2019).
 
-In all model comparisons we assessed the model fit by Akaike’s Information Criterion [@Anderson2008) generated by the ‘AIC’ R function. Results
+In all model comparisons we assessed the model fit by Akaike’s Information Criterion [@Anderson2008) generated by the ‘AIC’ R function. 
 
-
-### CONTINUE HERE - kept the protocol part
-
-# 1. DATA EXPLORATION and ANALYTICAL DECESIONS
-- distribution of hatching dates and brood sizes between treatment categories to see whether the design was balanced and thus controlling for environmental and social factors (like differences in hatch date) are not necessary; if well matched across treatments (90%) we will attempt analyses with nest pairs (reduced/increased) or triads (reduced/increase/unmanipulated), i.e. no need to control for differences between reared and hatched nest; if the match is <90% we will control the models for the age differences between the reared and hatch nests
-- is it possible to pair the treatments with control (to construct enlarged/reduced/unmanipulated "triads"; if not, controls will not be paired within analyses
-- distribution of data across days within season to find out whether controlling for multiple sampling within a day of each year is necessary. 
-- if we find corr >0.6 between any combination of continuous fixed effects, we keep the fixed effect with the most available data
-- correlation between dependent variables to aid interpretation of the results
-- check distributions and visualize raw data to check for inconsistencies e.g.: 
-    - if brood larger at day 14 than at hatch, the data are excluded; 
-    - if molecular sex unknown, we use it as third, unknown category
-    - check outlier statistics (e.g. boxplot) for tarsus and mass to check whether all are within real scale of blue tit size) and exclude those which are not
-    - the information on how many chicks were added/taken is a key for our analyses, thus we exclude the data where this information is missing
-    - if analyses requires chick number at hatching and day 14, the rows with missing one of these values are excluded
-    - as genetic parents may not be always know we run models with and without genetic parents 
-
-# MODEL SPECIFICATION 
-
-## Background
-        
-### Data      
-We believe that adding or taking four chicks from large broods (12-16 chicks) or from small broods (4-5 chicks) makes for two different experiments. Hence, we wish to divide the dataset into two and analyzed those separately. In case, the brood sizes and manipulations are "messy", i.e. not as described (e.g. more that one chick added to 4-5 chick broods or nests with less then 4-5 chicks used) we analyze the whole data together.
-
-###  Dependent variables
-- change_chick_# = change in chick number from start of experiment till day 14 
-- day_14_weight = mass of chick in grams at day 14 after hatching
-- day_14_tarsus_length = Length of chick tarsometatarus in mm at day 14 after hatching    
-- day_14_body_mass_index = day_14_weight/day_14_tarsus_length^2
-
-### Key explanatory variable
-- net_rearing_manipulation = essential whether the nest was enlarged or not
-- rear_Cs_at_start_of_rearing   Number of chicks in nest of rearing immediately following experimental chick removals and additions (note that for the control nests this corresponds to 'rear_d0_rear_nest_brood_size' = The number of live chicks in the nest of rearing immediately after eggs have hatched (before chicks were moved among nests for the experiment or to 'd0_hatch_nest_brood_size'; both shall be same for the control nests)
-- d14_rear_nest_brood_size    "In the nest where the chick was reared, the number of live chicks in the nest at day 14 after hatching"
-- chick_sex_molec = Sex of the chick based on molecular genetic analysis. 1 = female; 2 = male.  Not all chicks were sexed. We assign unsexed chicks as U - unknown. We include sex because female and male blue tit chicks grow differently [@Mainwaring2010]
-- brood_sex_ratio = sex ration of chicks in the brood (1 = all males, 0 = all females); calculated as proportion of males in the brood (males assigned as 1, females as 0 and unknown as 0.5). 
-
-### Control for genetic and rearing environment 
-- experimental design controls for the rearing environment. To control for multiple data points per nest, we control for rearing nest. As female and male blue tits grow differently, we also control for sex ration in each nest and for sex of a chick.
-- we also attempted to control for genetic mother and father of each chick, as long as such models converge, and as long as such data are available (we will run a model with and without genetic control)
-
-### Control for season, area and measurer
-- rear_nest_OH =  The date the eggs began to hatch in the nest in which the chick was reared. 1 = April 1. We standardized this variable - left "center" within the year so that zero indicates the day when first nest hatched in a given year  = rear_nest_OH_l
-- day14_measurer  = Code corresponding to the identity of the person who measured the chick at day 14.
-- rear_area = Letter code corresponding to the area (a.k.a. 'compartment') of the study site in which the chick was reared
-## MODELS        
-### 1. NO GROWTH - chick mortality
-```r    
-    'change_chick_#' ~ net_rearing_manipulation * rear_Cs_at_start_of_rearing + 
-                     brood_sex_ration + # only if doable 
-                     (1|hatch_year) + (1|rear_area) (1|rear_nest_OH_l)
-```                                           
-
-### 2. CHICK SIZE given treatment
-If data allow, we intend to use two types models:
-
-1. paired/triad nests (reduced, enlarged, non_manipulated) 
-2. all nests individually
-
-Each with and without sex interaction specified as follows:
-```r    
-    m0 =  day_14_body_mass/tarsus_length/body_mass_index ~ 
-            net_rearing_manipulation * rear_Cs_at_start_of_rearing +
-            net_rearing_manipulation * d14_rear_nest_brood_size +
-            chick_sex_molec + # only if doable
-            brood_sex_ration + # only if doable
-
-            (1|paired/triad_nests_ID) + # only for 2a and if doable
-            
-            (1|day14_measurer) + (1|rear_area) +
-            (1|rear_nest_OH_l) + (1|hatch_year)  +
-            (1|rear_nest_breed_ID)+
-
-            (1|hatch_mom_Ring) + (1|genetic_dad_ring_) # DROP the last two if the model does not converge
-
-
-    ms =  day_14_body_mass/tarsus_length/body_mass_index ~ 
-            net_rearing_manipulation * rear_Cs_at_start_of_rearing * chick_sex_molec+
-            net_rearing_manipulation * d14_rear_nest_brood_size * chick_sex_molec +
-            chick_sex_molec + # only if doable
-            brood_sex_ration + # only if doable
-
-            (1|paired/triad_nests_ID) + # only for 2a and if doable
-            
-            (1|day14_measurer) + (1|rear_area) +
-            (1|rear_nest_OH_l) + (1|hatch_year)  +
-            (1|rear_nest_breed_ID) + 
-
-            (1|hatch_mom_Ring) + (1|genetic_dad_ring_) # DROP the last two if the model does not converge
-``` 
-    
-We will check with AIC whether models with sex in interaction fit the data better (AICdelta > 5).
-
-# Decisions based on model outcomes  
-- if model assumptions not met, we adjust the models accordingly (e.g. log-transformation of variables or fitting additional variable visible in the residuals)
-- if year explains a lot of variation we also run models/plot data for each year separately
-
-# Reporting results
-- all tested model outputs will be in tables and visualized in a figure 
-- visualizations of raw data (if possible also in pairs/triads
+In all models the model assumptions were met, except for Table M model where error distribution was not normal (as the chick mortality data are bounded at zero). However, the Gaussian models are robust against violation of such assumptions and can be fitted to the binomial and Poisson distributions [@Knief2018]
 
 # References
