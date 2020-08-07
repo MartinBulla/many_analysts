@@ -68,10 +68,11 @@ BT_data_tidy <-
   mutate(chick_sex_molec = as.factor(ifelse(chick_sex_molec == ".", NA, 
                                 ifelse(chick_sex_molec == "1", "Female", "Male"))),
          chick_BMI = day_14_weight/(day_14_tarsus_length^2)) %>%
-  mutate_if(is.factor, list(~na_if(., "."))) %>% 
   mutate_at(c("hatch_year", "hatch_nest_breed_ID", "rear_nest_breed_ID", 
-              "day14_measurer", "rear_nest_trt"), 
+              "day14_measurer", "rear_nest_trt", "hatch_mom_Ring", 
+              "genetic_dad_ring", "chick_ring_number", "rear_area"), 
             as.factor) %>% 
+  mutate_if(is.factor, list(~na_if(., "."))) %>% 
   mutate_at(c("net_rearing_manipulation", "rear_Cs_at_start_of_rearing", "d0_hatch_nest_brood_size", 
               "d0_rear_nest_brood_size", "number_chicks_fledged_from_rear_nest"), 
             as.numeric) %>% 
@@ -403,8 +404,6 @@ weight_tarsus_mod <-
 r2_nakagawa(weight_tarsus_mod) # marginal R-squared is 0.428
 
 plot(effect("day_14_tarsus_length", weight_tarsus_mod))
-
-plot(day_14_tarsus_length ~ day_14_weight, data = BT_data)
 ```
 
 Body mass and tarsus are quite correlated but there is some variation (i.e., some individuals are heavier than normal for their structural size, whereas some are lighter than normal). Therefore, it could be useful to make a "body mass index" (BMI) of chick quality by dividing weight by tarsus^2. In humans, the BMI broadly categorizes a person as underweight, normal weight, overweight, or obese based on tissue mass (muscle, fat, and bone) and height (structural size). In our case we use tarsus instead of height and we can then derive a value that classifies a given chick as underweight for its tarsus size (e.g., maybe due to intense sibling competition), normal, or overwieght (e.g., maybe due to relaxed sibling competition).
@@ -510,3 +509,71 @@ ggarrange(tarsus_plot,
           nrow = 3, align = "v",
           heights = c(.35, .35, .37))
 ```
+
+```{r}
+# additional data checking
+    # NAs
+        summary(BT_data_tidy)
+        summary(factor(BT_data_tidy$chick_sex_molec))
+        length(BT_data_tidy$hatch_mom_Ring[is.na(BT_data_tidy$hatch_mom_Ring)])
+        length(BT_data_tidy$genetic_dad_ring[is.na(BT_data_tidy$genetic_dad_ring)])
+
+    # distributions
+        summary(factor(BT_data_tidy$d14_rear_nest_brood_size)) 
+        summary(factor(BT_data_tidy$net_rearing_manipulation)) 
+        summary(as.factor(BT_data_tidy$rear_Cs_at_start_of_rearing))
+        summary(as.factor(BT_data_tidy$d0_hatch_nest_brood_size))
+        # summary(BT_data_tidy$prop_change_in_brood_size)
+
+
+        ggplot(BT_data_tidy, aes(x = net_rearing_manipulation)) + 
+          geom_histogram()
+        
+        # in one case the brood size has increased by one chick
+        ggplot(BT_data_tidy, aes(x = d14_rear_nest_brood_size-rear_Cs_at_start_of_rearing, fill = rear_nest_trt)) + 
+          geom_histogram(position='dodge', bins = 12) + 
+          scale_x_continuous("dead chicks at day 14\n since start of experiment", 
+                             breaks = seq(-10,1, by = 1), 
+                             label = seq(-10,1, by = 1)) + 
+          xlab(c(-10, 1))
+
+        ggplot(BT_data_tidy, aes(x = (d14_rear_nest_brood_size-rear_Cs_at_start_of_rearing)/rear_Cs_at_start_of_rearing, 
+                                 fill = rear_nest_trt)) + 
+          geom_histogram(position='dodge', bins = 12) + 
+          scale_x_continuous("proportion of dead chicks at day 14\n since start of experiment",
+                             breaks = seq(-1,0.3, by = 0.1), 
+                             label = seq(-1,0.3, by = 0.1)) + xlab(c(-1, 0.3))
+```
+```{r, eval = FALSE}
+        # ggplot(BT_data_tidy, aes(x = prop_change_in_brood_size, 
+        #                          fill = rear_nest_trt)) + 
+        #   geom_histogram() + xlim(c(-0.5,0.5))
+
+    # cor among  predictors
+      # chick numbers at hatching and day 14    
+        aa = BT_data_tidy[complete.cases(BT_data_tidy),.(rear_Cs_at_start_of_rearing,d14_rear_nest_brood_size )]
+        
+        cor(aa$rear_Cs_at_start_of_rearing, aa$d14_rear_nest_brood_size) # use 'd14_rear_nest_brood_size' in the models
+        ggplot(BT_data_tidy, aes(x = rear_Cs_at_start_of_rearing, y = d14_rear_nest_brood_size)) + geom_point() +facet_wrap(.~rear_nest_trt) + geom_smooth(method = 'lm') 
+        ggplot(BT_data_tidy, aes(x = rear_Cs_at_start_of_rearing, y = rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)) + geom_point() +facet_wrap(.~rear_nest_trt) + geom_smooth(method = 'lm')
+
+      # chick numbers at day 14 and net change in chick numbers
+        ggplot(BT_data_tidy, aes(x = rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)) + geom_histogram()        
+        ggplot(BT_data_tidy, aes(x = as.factor(rear_nest_trt), y = rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)) + geom_boxplot()                                            
+        ggplot(BT_data_tidy, aes(x = as.factor(rear_nest_trt), y = (rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)/rear_Cs_at_start_of_rearing)) + geom_boxplot()  
+
+        cor(BT_data_tidy$d14_rear_nest_brood_size, BT_data_tidy$net_rearing_manipulation)
+        ggplot(BT_data_tidy, aes( y = net_rearing_manipulation, x = d14_rear_nest_brood_size)) +
+            geom_point() + stat_smooth(method = 'lm') + facet_wrap(.~ rear_nest_trt)
+
+
+        cor(BT_data_tidy$brood_sex_ratio, BT_data_tidy$net_rearing_manipulation)    
+        ggplot(BT_data_tidy, aes( y = net_rearing_manipulation, x = brood_sex_ratio)) +
+            geom_point() + stat_smooth(method = 'lm') + facet_wrap(.~ rear_nest_trt)
+
+      # chick mortality dataset
+      ggplot(mou, aes(x = rear_nest_OH_l)) + geom_histogram() +theme_MB
+      ggplot(mou, aes(x = net_rearing_manipulation, y = brood_sex_ratio)) + geom_point() + geom_smooth() +theme_MB
+      cor(mou$brood_sex_ratio, mou$net_rearing_manipulation)
+```
+
