@@ -1,10 +1,9 @@
 ---
 title: "A PRIORI DECIDED PROCEDURE for 'same data different analysts' project"
 author: "Luke J. Eberhart-Phillips and Martin Bulla"
-date: "2020-08-05 16:54:42"
+date: "`r Sys.time()`"
 output:
-  html_document: default
-  pdf_document: default
+   html_document: default
 bibliography: many_analysts.xml
 ---
 
@@ -20,20 +19,22 @@ We have read the data description and metadata for ‘Many EcoEvo Analysts’ da
 - distribution of hatching dates and brood sizes between treatment categories to see whether the design was balanced and thus controlling for environmental and social factors (like differences in hatch date) are not necessary; if well matched across treatments (90%) we will attempt analyses with nest pairs (reduced/increased) or triads (reduced/increase/unmanipulated), i.e. no need to control for differences between reared and hatched nest; if the match is <90% we will control the models for the age differences between the reared and hatch nests
 - is it possible to pair the treatments with control (to construct enlarged/reduced/unmanipulated "triads"; if not, controls will not be paired within analyses
 - distribution of data across days within season to find out whether controlling for multiple sampling within a day of each year is necessary. 
-- if we find corr >0.6 between any combination of continuous fixed effects, we check how model results change when each variable is taken out of the model at a time
+- if we find corr >0.6 between any combination of continuous fixed effects, we keep the fixed effect with the most available data
 - correlation between dependent variables to aid interpretation of the results
 - check distributions and visualize raw data to check for inconsistencies e.g.: 
     - if brood larger at day 14 than at hatch, the data are excluded; 
-    - if >33% missing data in an explanatory variable, we run a reduced model, but drop the variable from the global model; if <=33% missing data, we impute the missing data  [@Nakagawa2011];
-    - check outlier statistics (e.g. boxplot) for tarsus and mass to check whether all are within real scale of blue tit size)
+    - if molecular sex unknown, we use it as third, unknown category
+    - check outlier statistics (e.g. boxplot) for tarsus and mass to check whether all are within real scale of blue tit size) and exclude those which are not
     - the information on how many chicks were added/taken is a key for our analyses, thus we exclude the data where this information is missing
+    - if analyses requires chick number at hatching and day 14, the rows with missing one of these values are excluded
+    - as genetic parents may not be always know we run models with and without genetic parents 
 
 # MODEL SPECIFICATION 
 
 ## Background
         
 ### Data      
-We believe that adding or taking four chicks from large broods (12-16 chicks) or from small broods (4-5 chicks) makes for two different experiments. Hence, we divided the dataset into two and analyzed those separately. 
+We believe that adding or taking four chicks from large broods (12-16 chicks) or from small broods (4-5 chicks) makes for two different experiments. Hence, we wish to divide the dataset into two and analyzed those separately. In case, the brood sizes and manipulations are "messy", i.e. not as described (e.g. more that one chick added to 4-5 chick broods or nests with less then 4-5 chicks used) we analyze the whole data together.
 
 ###  Dependent variables
 - change_chick_# = change in chick number from start of experiment till day 14 
@@ -46,22 +47,22 @@ We believe that adding or taking four chicks from large broods (12-16 chicks) or
 - rear_Cs_at_start_of_rearing   Number of chicks in nest of rearing immediately following experimental chick removals and additions (note that for the control nests this corresponds to 'rear_d0_rear_nest_brood_size' = The number of live chicks in the nest of rearing immediately after eggs have hatched (before chicks were moved among nests for the experiment or to 'd0_hatch_nest_brood_size'; both shall be same for the control nests)
 - d14_rear_nest_brood_size    "In the nest where the chick was reared, the number of live chicks in the nest at day 14 after hatching"
 - chick_sex_molec = Sex of the chick based on molecular genetic analysis. 1 = female; 2 = male.  Not all chicks were sexed. We assign unsexed chicks as U - unknown. We include sex because female and male blue tit chicks grow differently [@Mainwaring2010]
-- brood_sex_ratio = sex ration of chicks in the brood (1 = all females, 0 = all males)
+- brood_sex_ratio = sex ration of chicks in the brood (1 = all males, 0 = all females); calculated as proportion of males in the brood (males assigned as 1, females as 0 and unknown as 0.5). 
 
 ### Control for genetic and rearing environment 
 - experimental design controls for the rearing environment. To control for multiple data points per nest, we control for rearing nest. As female and male blue tits grow differently, we also control for sex ration in each nest and for sex of a chick.
-- we also attempted to control for genetic mother and father of each chick, as long as such models converge. 
+- we also attempted to control for genetic mother and father of each chick, as long as such models converge, and as long as such data are available (we will run a model with and without genetic control)
 
-### Control for season and measurer
-- Date_of_day14  date (1 = April 1) of 14th day after hatching
-- day14_measurer  Code corresponding to the identity of the person who measured the chick at day 14.
-
+### Control for season, area and measurer
+- rear_nest_OH =  The date the eggs began to hatch in the nest in which the chick was reared. 1 = April 1. We standardized this variable - left "center" within the year so that zero indicates the day when first nest hatched in a given year  = rear_nest_OH_l
+- day14_measurer  = Code corresponding to the identity of the person who measured the chick at day 14.
+- rear_area = Letter code corresponding to the area (a.k.a. 'compartment') of the study site in which the chick was reared
 ## MODELS        
 ### 1. NO GROWTH - chick mortality
 ```r    
     'change_chick_#' ~ net_rearing_manipulation * rear_Cs_at_start_of_rearing + 
                      brood_sex_ration + # only if doable 
-                     (1|hatch_year) + (1|rear_area)
+                     (1|hatch_year) + (1|rear_area) (1|rear_nest_OH_l)
 ```                                           
 
 ### 2. CHICK SIZE given treatment
@@ -80,11 +81,10 @@ Each with and without sex interaction specified as follows:
 
             (1|paired/triad_nests_ID) + # only for 2a and if doable
             
-            (1|day14_measurer) + (1|rear_area)
-            
-(1|rear_nest_OH_std) + (1|hatch_year)  +
-            (1|rear_nest_breed_ID)
- + 
+            (1|day14_measurer) + (1|rear_area) +
+            (1|rear_nest_OH_l) + (1|hatch_year)  +
+            (1|rear_nest_breed_ID)+
+
             (1|hatch_mom_Ring) + (1|genetic_dad_ring_) # DROP the last two if the model does not converge
 
 
@@ -94,13 +94,12 @@ Each with and without sex interaction specified as follows:
             chick_sex_molec + # only if doable
             brood_sex_ration + # only if doable
 
-             (1|paired/triad_nests_ID) + # only for 2a and if doable
+            (1|paired/triad_nests_ID) + # only for 2a and if doable
             
-            (1|day14_measurer) + (1|rear_area)
-            
-(1|rear_nest_OH_std) + (1|hatch_year)  +
-            (1|rear_nest_breed_ID)
- + 
+            (1|day14_measurer) + (1|rear_area) +
+            (1|rear_nest_OH_l) + (1|hatch_year)  +
+            (1|rear_nest_breed_ID) + 
+
             (1|hatch_mom_Ring) + (1|genetic_dad_ring_) # DROP the last two if the model does not converge
 ``` 
     
