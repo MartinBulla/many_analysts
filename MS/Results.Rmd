@@ -12,5 +12,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 We found consistent treatment effects across all response variables that were independent of the model specifications (see [Tables](https://github.com/MartinBulla/many_analysts/tree/master/Output)). Chicks died the most, had smaller tarsus, lower body mass, and were the leanest (lowest body mass index) in the nests where most chicks were added (which also generally corresponds to the nests with the most chicks at the day 14 - a day of chick measurement). Treatment in interaction with sex has not improved the model fit and the simplest models ([model 2 in Methods](https://github.com/MartinBulla/many_analysts/tree/master/MS)) performed the best of all (also exploratory) models, i.e. no other model had delta AIC smaller than 5 ([predefined a priori](https://github.com/MartinBulla/many_analysts/blob/master/Methods/Protocol.Rmd)), and even smaller than 2 (see Tables).  
 
+Note that males tend to have larger tarsus and are heavier (regardless of the treatment), but their body mass index is similar to the one of females.
 
 # References
