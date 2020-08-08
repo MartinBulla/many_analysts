@@ -226,12 +226,11 @@
                     )
                 summary(mb0gs) 
                 summary(glht(mb0gs))
-                plot(allEffects(mb0gs))
-           
+                plot(allEffects(mb0gs))   
         # Table B - main text - and model assumptions
-            o_mb0g = m_out(name = "a - net chick", model = mb0g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
-            o_mb14g  = m_out(name = "b - day 14 chick #", model = mb14g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
-            o_mb0gs = m_out(name = "c - (a) with sex interaction", model = mb0gs, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)   
+            o_mb0g = m_out(name = "a - net chick", model = mb0g, round_ = 5, nsim = 5000, aic = TRUE, N = 2550)
+            o_mb14g  = m_out(name = "b - day 14 chick #", model = mb14g, round_ = 5, nsim = 5000, aic = TRUE, N = 2550)
+            o_mb0gs = m_out(name = "c - (a) with sex interaction", model = mb0gs, round_ = 5, nsim = 5000, aic = TRUE, N = 2550)   
             
             sname = 'Table_B'
 
@@ -253,8 +252,7 @@
             m_ass(name = 'Table Bb - BMI-d14+sex+sex-ratio', mo = mb14g, dat = dmg, fixed = c('d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
 
             m_ass(name = 'Table Bc - BMI-netxsex+sex-ratio', mo = mb0gs, dat = dmg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
-        # Table Be - Extended material
-
+    
 # EXTENDED MATERIAL TABLES
     # TARSUS - Table TE 
         # INFO
@@ -663,23 +661,23 @@
                 aic2[, ER := round(max(prob)/prob, 2)]
                 aic2[order(deltaAIC)]
         # Table BE -and model assumptions
-            o_mt0g = m_out(name = "a - net chick", model = mt0g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
+            o_mt0g = m_out(name = "a - net chick", model = mt0g, round_ = 5, nsim = 5000, aic = TRUE, N = 2550)
             m_ass(name = 'Table BEa - BMI-net+sex+sex-ratio - scaled', mo = mt0g, dat = dtg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
         
-            o_mt14g  = m_out(name = "b - day 14 chick #", model = mt14g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
+            o_mt14g  = m_out(name = "b - day 14 chick #", model = mt14g, round_ = 5, nsim = 5000, aic = TRUE, N = 2550)
             m_ass(name = 'Table BEb - BMI-d14+sex+sex-ratio - scaled', mo = mt14g, dat = dtg, fixed = c('d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
-            o_mtig  = m_out(name = "c - net*d14", model = mtig, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
+            o_mtig  = m_out(name = "c - net*d14", model = mtig, round_ = 5, nsim = 5000, aic = TRUE, N = 2550)
             m_ass(name = 'Table BEc - BMI-netxd14+sex-ratio scaled', mo = mtig, dat = dtg, fixed = c('net_rearing_manipulation','d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
         
-            o_mt1g  = m_out(name = "d - net+d14", model = mt1g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
+            o_mt1g  = m_out(name = "d - net+d14", model = mt1g, round_ = 5, nsim = 5000, aic = TRUE, N = 2550)
             m_ass(name = 'Table BEd - BMI-net+d14+sex-ratio scaled', mo = mt1g, dat = dtg, fixed = c('net_rearing_manipulation','d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
         
-            o_mt0gs = m_out(name = "e - (a) with sex interaction", model = mt0gs, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
+            o_mt0gs = m_out(name = "e - (a) with sex interaction", model = mt0gs, round_ = 5, nsim = 5000, aic = TRUE, N = 2550)
             m_ass(name = 'Table BEe - BMI-netxsex+sex-ratio - scaled', mo = mt0gs, dat = dtg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
            
-            o_mtigs  = m_out(name = "f - (c) with sex interaction", model = mtigs, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
+            o_mtigs  = m_out(name = "f - (c) with sex interaction", model = mtigs, round_ = 5, nsim = 5000, aic = TRUE, N = 2550)
             m_ass(name = 'Table BEf - BMI-netxd14xsex+sex-ratio - scaled', mo = mtigs, dat = dtg, fixed = c('net_rearing_manipulation','d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
-            o_mt1gs  = m_out(name = "g - (d) with sex interaction", model = mt1gs, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
+            o_mt1gs  = m_out(name = "g - (d) with sex interaction", model = mt1gs, round_ = 5, nsim = 5000, aic = TRUE, N = 2550)
             m_ass(name = 'Table BEg - BMI-netxsex+d14xsex+sex-ratio - scaled', mo = mt1gs, dat = dtg, fixed = c('net_rearing_manipulation','d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
             
             sname = 'Table_TE'
@@ -878,9 +876,9 @@
                 summary(glht(mb0gs))
                 plot(allEffects(mb0gs))    
         # Table BEP - main text - and model assumptions
-            o_mb0g = m_out(name = "a - net chick", model = mb0g, round_ = 3, nsim = 5000, aic = TRUE, N = 2070)
-            o_mb14g  = m_out(name = "b - day 14 chick #", model = mb14g, round_ = 3, nsim = 5000, aic = TRUE, N = 2070)
-            o_mb0gs = m_out(name = "c - (a) with sex interaction", model = mb0gs, round_ = 3, nsim = 5000, aic = TRUE, N = 2070)   
+            o_mb0g = m_out(name = "a - net chick", model = mb0g, round_ = 5, nsim = 5000, aic = TRUE, N = 2070)
+            o_mb14g  = m_out(name = "b - day 14 chick #", model = mb14g, round_ = 5, nsim = 5000, aic = TRUE, N = 2070)
+            o_mb0gs = m_out(name = "c - (a) with sex interaction", model = mb0gs, round_ = 5, nsim = 5000, aic = TRUE, N = 2070)   
             
             sname = 'Table_BEP'
 
