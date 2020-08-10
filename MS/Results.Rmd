@@ -3,15 +3,1892 @@ title: "RESULTS for 'same data different analysts' project, ‘Many EcoEvo Analy
 author: "Luke J. Eberhart-Phillips and Martin Bulla"
 date: "`r Sys.time()`"
 output: 
-    html_document: default
+    html_document:
+      code_folding: hide
 bibliography: many_analysts.xml
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, cache = TRUE, fig.align = "center")
 ```
-We found consistent treatment effects across all response variables that were independent of the model specifications (see [Tables](https://github.com/MartinBulla/many_analysts/tree/master/Output)). Chicks died the most, had smaller tarsus, lower body mass, and were the leanest (lowest body mass index) in the nests where most chicks were added (which also generally corresponds to the nests with the most chicks at the day 14 - a day of chick measurement). Treatment in interaction with sex has not improved the model fit and the simplest models ([model 2 in Methods](https://github.com/MartinBulla/many_analysts/tree/master/MS)) performed the best of all (also exploratory) models, i.e. no other model had delta AIC smaller than 5 ([predefined a priori](https://github.com/MartinBulla/many_analysts/blob/master/Methods/Protocol.Rmd)), and even smaller than 2 (see Tables).  
+We found consistent treatment effects across all response variables that were independent of the model specifications. For results specific to each response, see tables of effect sizes below (i.e., Table M for *Chick mortality*, Table T for *Chick tarsus at day 14*, Table W for *Chick body weight at day 14*, and Table B for *Chick body mass index at day 14*). In short, in nests in which sibling competition was increased experimentally:
 
-Note that males tend to have larger tarsus and are heavier (regardless of the treatment), but their body mass index is similar to the one of females.
+ 1. Chicks were more likely to die (estimate [95%CI]: 0.236 [0.172 to 0.302] dead chicks per added chick)
+ 2. Chicks had smaller tarsi (-0.063 [-0.074 to -0.051] mm per added chick)
+ 3. Chicks had lower body masses (-0.182 [-0.213 to -0.153] g per added chick)
+ 4. Chicks were leaner, i.e. had the lowest body mass index (-0.00037 [-0.00045 to -0.00029] per added chick)
 
-# References
+Notably, the increase in sibling competition corresponded to the nests with the most chicks at day 14 (i.e., the day of measurement).
+
+A model that included an interaction between treatment and chick sex did not improve the model fit. Furthermore, the simplest models ([model 2 in Methods](https://rawcdn.githack.com/MartinBulla/many_analysts/3601f2f03b574d8ca45a53d60a12f100d38b707b/MS/Methods.html)) performed the best of all models (in addition to all our exploratory models), i.e. no other model had delta AIC smaller than 5 ([predefined a priori](https://rawcdn.githack.com/MartinBulla/many_analysts/3601f2f03b574d8ca45a53d60a12f100d38b707b/MS/Protocol.html)), and even smaller than 2 (see source notes of Tables below for AIC values). 
+
+We also identified that males tended to have larger tarsi and were heavier than their sisters (regardless of the treatment), however body mass index exhibited no sex differences.
+
+We also fitted the intended (*a priori*) defined models that controled for experimental pairing (i.e., reduced, enlarged). As not all data in the dataset had pairs assigned and as this method does not work for control nests (these nests had no control), we have refitted the models shown in Tables T, W and B to the reduced data and included random slope `pair_ID.` These results are similar to those from the initial models and can be found in the *Exploratory Models* section (i.e., Tables TE, WE, and BE).
+
+```{r tools, echo=FALSE, results="hide"}
+
+using<-function(...) {
+    libs<-unlist(list(...))
+    req<-unlist(lapply(libs,require,character.only=TRUE))
+    need<-libs[req==FALSE]
+    if(length(need)>0){ 
+        install.packages(need)
+        lapply(need,require,character.only=TRUE)
+    }
+}
+
+
+# load/install packages
+  packages = c('anytime','arm','data.table', 'effects', 'foreach', 'ggplot2', 'ggthemes', 'glue',  'grid', 'here', 'htmlTable', 'lattice', 'lubridate', 'magrittr', 'multcomp', 'performance','plyr','raster','stringr','zoo', 'gt', 'tidyverse', 'ggpubr')
+  sapply(packages, function(x) suppressPackageStartupMessages(using(x)) )
+
+# Customized ggplot theme
+    theme_MB = theme(  
+              axis.line=element_blank(),
+              #axis.line = element_line(colour="grey70", size=0.25),
+              axis.title = element_text(size=7, colour="grey30"),
+              axis.title.y = element_text(vjust=1),
+              axis.title.x = element_text(vjust=1),
+              axis.text=element_text(size=6),#, vjust = 0.5, hjust=1),# margin=units(0.5,"mm")),
+              axis.ticks.length=unit(0.5,"mm"),
+              #axis.ticks.margin,
+              
+              strip.text.x = element_text(size = 6, color="grey30",  margin=margin(1,1,1,1,"mm")), #grey50
+              strip.background = element_rect(fill="grey99",colour="grey70", size=0.25),
+                #strip.background = element_blank(), 
+                #strip.text = element_blank(),
+              panel.spacing = unit(0, "mm"),
+              panel.background=element_blank(),
+                #panel.border=element_blank(),
+              panel.border = element_rect(colour="grey70", size=0.25, fill = NA),
+              panel.grid = element_blank(),
+              legend.text=element_text(size=6),
+              legend.title=element_text(size=7)
+              )
+
+
+# model output function
+  m_out = function(name = "define", model = m, round_ = 3, nsim = 5000, aic = TRUE, save_sim = FALSE, N = NA){
+  bsim <- sim(model, n.sim=nsim)  
+    if(save_sim!=FALSE){save(bsim, file = paste0(save_sim, name,'.RData'))}
+   v = apply(bsim@fixef, 2, quantile, prob=c(0.5))
+   ci = apply(bsim@fixef, 2, quantile, prob=c(0.025,0.975)) 
+   oi=data.frame(model = name,type='fixed',effect=rownames(coef(summary(model))),estimate=v, lwr=ci[1,], upr=ci[2,])
+      rownames(oi) = NULL
+      oi$estimate_r=round(oi$estimate,round_)
+      oi$lwr_r=round(oi$lwr,round_)
+      oi$upr_r=round(oi$upr,round_)
+  oii=oi[c('model','type',"effect", "estimate_r","lwr_r",'upr_r')] 
+  
+   l=data.frame(summary(model)$varcor)
+   l = l[is.na(l$var2),]
+   l$var1 = ifelse(is.na(l$var1),"",l$var1)
+   l$pred = paste(l$grp,l$var1)
+
+   q050={}
+   q025={}
+   q975={}
+   pred={}
+   
+   # variance of random effects
+   for (ran in names(bsim@ranef)) {
+     ran_type = l$var1[l$grp == ran]
+     for(i in ran_type){
+      q050=c(q050,quantile(apply(bsim@ranef[[ran]][,,ran_type], 1, var), prob=c(0.5)))
+      q025=c(q025,quantile(apply(bsim@ranef[[ran]][,,ran_type], 1, var), prob=c(0.025)))
+      q975=c(q975,quantile(apply(bsim@ranef[[ran]][,,ran_type], 1, var), prob=c(0.975)))
+      pred= c(pred,paste(ran, i))
+      }
+     }
+   # residual variance
+   q050=c(q050,quantile(bsim@sigma^2, prob=c(0.5)))
+   q025=c(q025,quantile(bsim@sigma^2, prob=c(0.025)))
+   q975=c(q975,quantile(bsim@sigma^2, prob=c(0.975)))
+   pred= c(pred,'Residual')
+
+   ri=data.frame(model = name,type='random %',effect=pred, estimate_r=round(100*q050/sum(q050)), lwr_r=round(100*q025/sum(q025)), upr_r=round(100*q975/sum(q975)))
+     rx = ri[ri$effect == 'Residual',]
+     if(rx$lwr_r>rx$upr_r){ri$lwr_r[ri$effect == 'Residual'] = rx$upr_r; ri$upr_r[ri$effect == 'Residual'] = rx$lwr_r}
+     ri$estimate_r = paste0(ri$estimate_r,'%')
+     ri$lwr_r = paste0(ri$lwr_r,'%')
+     ri$upr_r = paste0(ri$upr_r,'%')
+  
+  x = rbind(oii,ri)
+    x$N = ""
+    x$N[1] = N
+    if (aic == TRUE){   
+        x$AIC = ""
+        x$AIC[1]=AIC(update(model,REML = FALSE))
+        x$delta = ""
+        x$prob = ""
+        x$ER = ""
+        }
+     x$R2_mar = ""
+     x$R2_con = ""
+     x$R2_mar [1]= r2_nakagawa(model)$R2_marginal
+     x$R2_con [1]= r2_nakagawa(model)$R2_conditional
+    return(x)
+  } 
+# model assumption function
+  m_ass = function(name = 'define', mo = m0, dat = d, fixed = NULL, categ = NULL, trans = NULL, spatial = TRUE, temporal = TRUE, PNG = TRUE, outdir = 'outdir'){
+   l=data.frame(summary(mo)$varcor)
+   l = l[is.na(l$var2),]
+   if(PNG == TRUE){
+    png(paste(outdir,name, ".png", sep=""), width=6,height=9,units="in",res=600)
+     }else{dev.new(width=6,height=9)}
+   
+   n = nrow(l)-1+length(fixed)+length(categ) + 4 + if(temporal==TRUE){1}else{0} + if(spatial==TRUE){1}else{0} 
+   par(mfrow=c(ceiling(n/3),3))
+   
+   scatter.smooth(fitted(mo),resid(mo),col='grey');abline(h=0, lty=2, col ='red')
+   scatter.smooth(fitted(mo),sqrt(abs(resid(mo))), col='grey')
+   qqnorm(resid(mo), main=list("Normal Q-Q Plot: residuals", cex=0.8),col='grey');qqline(resid(mo))
+   #unique(l$grp[l$grp!="Residual"])
+   for(i in unique(l$grp[l$grp!="Residual"])){
+    #i = "mean_year"
+    ll=ranef(mo)[names(ranef(mo))==i][[1]]
+    if(ncol(ll)==1){
+     qqnorm(ll[,1], main = paste(i,names(ll)[1]),col='grey');qqline(ll[,1], col ='red')
+     }else{
+      qqnorm(ll[,1], main = paste(i,names(ll)[1]),col='grey');qqline(ll[,1], col ='red')
+      qqnorm(ll[,2], main = paste(i,names(ll)[2]),col='grey');qqline(ll[,2], col ='red')
+     }
+    }
+    
+   # variables
+   scatter={} 
+   for (i in rownames(summary(mo)$coef)) {
+        #i = "lat_abs"
+      j=sub("\\).*", "", sub(".*\\(", "",i)) 
+      scatter[length(scatter)+1]=j
+    }
+    x = data.frame(scatter=unique(scatter)[2:length(unique(scatter))],
+                    log_ = grepl("log",rownames(summary(mo)$coef)[2:length(unique(scatter))]), stringsAsFactors = FALSE)
+    for (i in 1:length(fixed)){
+        jj =fixed[i]
+        variable=dat[, ..jj][[1]]
+        if(trans[i]=='log'){
+        scatter.smooth(resid(mo)~log(variable),xlab=paste('log(',jj,')',sep=''), col = 'grey');abline(h=0, lwd=1, lty = 2, col ='red')
+        }else if(trans[i]=='abs'){
+        scatter.smooth(resid(mo)~abs(variable),xlab=paste('abs(',jj,')',sep=''), col = 'grey');abline(h=0, lwd=1, lty = 2, col ='red')
+        }else{
+        scatter.smooth(resid(mo)~variable,xlab=jj,col = 'grey');abline(h=0, lwd=1, lty = 2, col ='red')
+      }
+     }
+    
+    if(length(categ)>0){
+      for(i in categ){
+         variable=dat[, ..i][[1]]
+          boxplot(resid(mo)~variable, medcol='grey', whiskcol='grey', staplecol='grey', boxcol='grey', outcol='grey');abline(h=0, lty=3, lwd=1, col = 'red')
+         }
+    }     
+          
+    if(temporal == TRUE){
+        acf(resid(mo), type="p", main=list("Temporal autocorrelation:\npartial series residual",cex=0.8))
+        }
+    if(spatial == TRUE){    
+    spdata=data.frame(resid=resid(mo), x=dat$Longitude, y=dat$Latitude)
+        spdata$col=ifelse(spdata$resid<0,rgb(83,95,124,100, maxColorValue = 255),ifelse(spdata$resid>0,rgb(253,184,19,100, maxColorValue = 255), 'red'))
+        #cex_=c(1,2,3,3.5,4)
+        cex_=c(1,1.5,2,2.5,3)
+        spdata$cex=as.character(cut(abs(spdata$resid), 5, labels=cex_))
+      plot(spdata$x, spdata$y,col=spdata$col, cex=as.numeric(spdata$cex), pch= 16, main=list('Spatial distribution of residuals', cex=0.8))
+        legend("topleft", pch=16, legend=c('>0','<0'), ,col=c(rgb(83,95,124,100, maxColorValue = 255),rgb(253,184,19,100, maxColorValue = 255)), cex=0.8)
+      plot(spdata$x[spdata$resid<0], spdata$y[spdata$resid<0],col=spdata$col[spdata$resid<0], cex=as.numeric(spdata$cex[spdata$resid<0]), pch= 16, main=list('Spatial distribution of residuals (<0)', cex=0.8))
+      plot(spdata$x[spdata$resid>=0], spdata$y[spdata$resid>=0],col=spdata$col[spdata$resid>=0], cex=as.numeric(spdata$cex[spdata$resid>=0]), pch= 16, main=list('Spatial distribution of residuals (>=0)', cex=0.8))
+        }
+   
+   mtext(paste(slot(mo,"call")[1],'(',slot(mo,"call")[2],sep=''), side = 3, line = -1, cex=0.7,outer = TRUE)
+  if(PNG==TRUE){dev.off()}
+  }
+    
+
+
+```
+
+```{r, echo=FALSE}
+# define the plotting theme to be used in subsequent ggplots
+luke_theme <- 
+  theme_bw() +
+  theme(
+    text = element_text(family = "Franklin Gothic Book"),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8),
+    axis.title.x = element_text(size = 10),
+    axis.text.x  = element_text(size = 8), 
+    axis.title.y = element_text(size = 10),
+    axis.text.y = element_text(size = 8),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(size = 0.5, colour = "grey40"),
+    axis.ticks.length = unit(0.2, "cm"),
+    panel.border = element_rect(linetype = "solid", colour = "grey")
+  )
+
+# set the ggplotting theme
+theme_set(luke_theme)
+```
+
+```{r prepare data, echo=FALSE, results="hide"}
+# load data    
+a = fread('../Data/blue_tit_data.csv') 
+    # a = read.csv(here::here("Data/blue_tit_data.csv"), stringsAsFactors = FALSE)
+    setnames(a, old = 'genetic_dad_ring_(WP_or_EP)', new = 'genetic_dad')
+
+    a = a[net_rearing_manipulation != ".", .(rear_nest_breed_ID, hatch_year, rear_nest_OH, chick_sex_molec, hatch_mom_Ring, genetic_dad, day_14_weight, day_14_tarsus_length, 
+        rear_nest_trt, net_rearing_manipulation, rear_Cs_at_start_of_rearing, d14_rear_nest_brood_size,  d0_hatch_nest_brood_size, rear_d0_rear_nest_brood_size,day14_measurer, rear_area)]
+
+# 203455 nest has one chicks with different year for when the eggs began to hatch in the nest in which the chick was reared. 1 = April 1., we assign the same year as is the year for the remaining chicks
+    a[rear_nest_breed_ID == '203455', hatch_year := 2003]
+
+# define NAs and column and variable definitions
+    a[hatch_mom_Ring %in% ".", hatch_mom_Ring := NA]
+    a[genetic_dad %in% ".", genetic_dad := NA]
+    a[, rear_Cs_at_start_of_rearing := as.numeric(rear_Cs_at_start_of_rearing)]
+    a[, net_rearing_manipulation := as.numeric(net_rearing_manipulation)]
+    a[, d14_rear_nest_brood_size := as.numeric(d14_rear_nest_brood_size)]
+    a[, d0_hatch_nest_brood_size := as.numeric(d0_hatch_nest_brood_size)]
+    a[, rear_d0_rear_nest_brood_size := as.numeric(rear_d0_rear_nest_brood_size)]
+    a[chick_sex_molec %in% ".", chick_sex_molec := "u"]
+    a[chick_sex_molec %in% "1", chick_sex_molec := "f"]
+    a[chick_sex_molec %in% "2", chick_sex_molec := "m"]
+    a[rear_nest_trt %in% "5", treatment := "increased"]
+    a[rear_nest_trt %in% "6", treatment := "reduced"]
+    a[rear_nest_trt %in% "7", treatment := "constant"]
+
+# compute  variables
+    a[, change_chick_n := rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size]
+    a[, rear_nest_OH_l :=  rear_nest_OH - min(rear_nest_OH), by = hatch_year] # day when first nest hatch in a given year is zero day of the season
+    a[, net_rearing_manipulation_factor := as.factor(net_rearing_manipulation)]
+    a[, prop_change_in_brood_size := net_rearing_manipulation/d0_hatch_nest_brood_size]
+    # sex ration at day 14
+        a[chick_sex_molec == 'm', sex := 1]
+        a[chick_sex_molec == 'f', sex := 0]
+        a[chick_sex_molec == 'u', sex := 0.5]
+        a[, brood_sex_ratio := sum(sex)/length(sex), by = rear_nest_breed_ID]
+    # body mass index
+        a[, body_mass_index := day_14_weight/day_14_tarsus_length^2]
+# dataset for chick mortality
+    mmo = a[complete.cases(a),.(change_chick_n, net_rearing_manipulation, d14_rear_nest_brood_size, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID)]
+    mou = unique(mmo)
+    nrow(mou)
+    length(unique(mmo$rear_nest_breed_ID))
+    mou[, net_rearing_manipulation_factor := as.factor(net_rearing_manipulation)]
+    
+    reml = TRUE
+    
+# dataset for paired analyses
+    p = fread('../Data/blue_tit_nest_pairs_IDs.csv') 
+    p = merge(a,p[,.(rear_nest_breed_ID, pair_ID)], all.x = TRUE)
+    p = p[!is.na(pair_ID)]
+
+```
+
+```{r, echo=FALSE, results="hide"}
+BT_data <- read.csv(file = "../Data/blue_tit_data.csv", stringsAsFactors = FALSE)
+```
+
+```{r, echo=FALSE, results="hide"}
+BT_data_tidy <-
+  BT_data %>% 
+  # select variables of interest
+  dplyr::select(chick_ring_number, hatch_year, hatch_nest_breed_ID, rear_nest_breed_ID, rear_area, hatch_mom_Ring, 
+         genetic_dad_ring_.WP_or_EP., hatch_nest_OH, rear_nest_OH, d0_hatch_nest_brood_size, rear_d0_rear_nest_brood_size,
+         rear_nest_trt, net_rearing_manipulation, rear_Cs_at_start_of_rearing, d14_rear_nest_brood_size, 
+         day_14_tarsus_length, day_14_weight, day14_measurer, chick_sex_molec, number_chicks_fledged_from_rear_nest) %>%
+  # rename the genetic dad vaiable
+  dplyr::rename(genetic_dad_ring = genetic_dad_ring_.WP_or_EP., 
+         d0_rear_nest_brood_size = rear_d0_rear_nest_brood_size) %>% 
+  # replace all "." with NA in factor variables
+  dplyr::mutate(chick_sex_molec = as.factor(ifelse(chick_sex_molec == ".", NA, 
+                                ifelse(chick_sex_molec == "1", "Female", "Male"))),
+         chick_BMI = day_14_weight/(day_14_tarsus_length^2)) %>%
+  dplyr::mutate_at(c("hatch_year", "hatch_nest_breed_ID", "rear_nest_breed_ID", 
+              "day14_measurer", "rear_nest_trt", "hatch_mom_Ring", 
+              "genetic_dad_ring", "chick_ring_number", "rear_area"), 
+            as.factor) %>% 
+  dplyr::mutate_if(is.factor, list(~dplyr::na_if(., "."))) %>% 
+  dplyr::mutate_at(c("net_rearing_manipulation", "rear_Cs_at_start_of_rearing", "d0_hatch_nest_brood_size", 
+              "d0_rear_nest_brood_size", "number_chicks_fledged_from_rear_nest"), 
+            as.numeric) %>% 
+  # re-name the treatment groups
+  dplyr::mutate(rear_nest_trt = 
+           as.factor(ifelse(rear_nest_trt == "5", "increase", 
+                        ifelse(rear_nest_trt == "6", "decrease", "control")))) %>% 
+  dplyr::mutate(prop_change_in_brood_size = net_rearing_manipulation/d0_hatch_nest_brood_size)
+
+BT_nest_pairs <- 
+  BT_data_tidy %>% 
+  dplyr::group_by(chick_ring_number) %>% 
+  dplyr::mutate_at(c("hatch_nest_breed_ID", "rear_nest_breed_ID"), as.character) %>% 
+  dplyr::mutate_at(c("hatch_nest_breed_ID", "rear_nest_breed_ID"), as.numeric) %>% 
+  dplyr::summarise(pair_ID_min = min(hatch_nest_breed_ID, rear_nest_breed_ID),
+            pair_ID_max = max(hatch_nest_breed_ID, rear_nest_breed_ID)) %>% 
+  dplyr::left_join(BT_data_tidy, ., by = "chick_ring_number") %>% 
+  dplyr::select(hatch_nest_breed_ID, rear_nest_breed_ID, d0_hatch_nest_brood_size,
+         d0_rear_nest_brood_size, rear_nest_trt, net_rearing_manipulation,
+         rear_Cs_at_start_of_rearing, pair_ID_min, pair_ID_max) %>%
+  dplyr::distinct() %>% 
+  dplyr::filter(pair_ID_min != pair_ID_max) %>% 
+  dplyr::mutate(pair_ID = paste(pair_ID_min, pair_ID_max, sep = "_")) %>% 
+  dplyr::select(hatch_nest_breed_ID, pair_ID)
+
+BT_data_tidy <- 
+  BT_data_tidy %>% 
+  dplyr::left_join(., BT_nest_pairs, by = "hatch_nest_breed_ID")
+
+morphometric_summaries <- 
+  BT_data_tidy %>% 
+  dplyr::mutate(day_14_BMI = day_14_weight/(day_14_tarsus_length^2)) %>% 
+  dplyr::group_by(pair_ID, rear_nest_trt) %>% 
+  dplyr::summarise(mean_tarsus = mean(day_14_tarsus_length, na.rm = TRUE),
+            median_tarsus = median(day_14_tarsus_length, na.rm = TRUE),
+            sd_tarsus = sd(day_14_tarsus_length, na.rm = TRUE),
+            se_tarsus = sd(day_14_tarsus_length, na.rm = TRUE)/sqrt(n()),
+            mean_mass = mean(day_14_weight, na.rm = TRUE),
+            median_mass = median(day_14_weight, na.rm = TRUE),
+            sd_mass = sd(day_14_weight, na.rm = TRUE),
+            se_mass = sd(day_14_weight, na.rm = TRUE)/sqrt(n()),
+            mean_BMI = mean(day_14_BMI, na.rm = TRUE),
+            median_BMI = median(day_14_BMI, na.rm = TRUE),
+            sd_BMI = sd(day_14_BMI, na.rm = TRUE),
+            se_BMI = sd(day_14_BMI, na.rm = TRUE)/sqrt(n()),
+            d0_d14_prop_change_in_brood_size = mean(d14_rear_nest_brood_size, na.rm = TRUE) / mean(rear_Cs_at_start_of_rearing, na.rm = TRUE)) %>% 
+  dplyr::filter(rear_nest_trt != "control") %>% 
+  tidyr::pivot_wider(names_from = rear_nest_trt, 
+              values_from = c(mean_tarsus, median_tarsus, sd_tarsus, se_tarsus, 
+                              mean_mass, median_mass, sd_mass, se_mass, 
+                              mean_BMI, median_BMI, sd_BMI, se_BMI,
+                              d0_d14_prop_change_in_brood_size)) %>% 
+  na.omit
+
+tarsus_plot <- 
+  ggplot(data = morphometric_summaries) +
+  geom_abline(intercept = 0 , slope = 1, linetype = "dashed", color = "grey30") + 
+  geom_point(aes(y = mean_tarsus_increase, x = mean_tarsus_decrease), alpha = 0.5) +
+  geom_errorbar(aes(y = mean_tarsus_increase, x = mean_tarsus_decrease, 
+                    ymin = mean_tarsus_increase - se_tarsus_increase, 
+                    ymax = mean_tarsus_increase + se_tarsus_increase), alpha = 0.2) +
+  geom_errorbarh(aes(y = mean_tarsus_increase, x = mean_tarsus_decrease, 
+                     xmin = mean_tarsus_decrease - se_tarsus_decrease, 
+                     xmax = mean_tarsus_decrease + se_tarsus_decrease), alpha = 0.2) +
+  coord_fixed(ratio = 1) +
+  xlab(expression(paste("Mean tarsus length in ", italic("REDUCED")," brood (cm ± SE)"))) +
+  ylab(expression(paste("Mean tarsus length in ", italic("ENLARGED")," brood (cm ± SE)"))) +
+  scale_y_continuous(limits = c(13, 18)) +
+  scale_x_continuous(limits = c(13, 18)) +
+  annotate(geom = "text", y = 14, x = 14.5, angle = 45,
+           label = "Brood reduction increased\naverage body size in brood",
+           color = "black", size = 2.5, fontface = 'italic') +
+  annotate(geom = "text", y = 14.5, x = 14, angle = 45,
+           label = "Brood reduction decreased\naverage body size in brood",
+           color = "black", size = 2.5, fontface = 'italic')
+
+mass_plot <-
+  ggplot(data = morphometric_summaries) +
+  geom_abline(intercept = 0 , slope = 1, linetype = "dashed", color = "grey30") + 
+  geom_point(aes(y = mean_mass_increase, x = mean_mass_decrease), alpha = 0.5) +
+  geom_errorbar(aes(y = mean_mass_increase, x = mean_mass_decrease, 
+                    ymin = mean_mass_increase - se_mass_increase, 
+                    ymax = mean_mass_increase + se_mass_increase), alpha = 0.2) +
+  geom_errorbarh(aes(y = mean_mass_increase, x = mean_mass_decrease, 
+                     xmin = mean_mass_decrease - se_mass_decrease, 
+                     xmax = mean_mass_decrease + se_mass_decrease), alpha = 0.2) +
+  coord_fixed(ratio = 1) +
+  xlab(expression(paste("Mean body weight in ", italic("REDUCED")," brood (g ± SE)"))) +
+  ylab(expression(paste("Mean body weight in ", italic("ENLARGED")," brood (g ± SE)"))) +
+  scale_y_continuous(limits = c(6, 13)) +
+  scale_x_continuous(limits = c(6, 13))
+
+BMI_plot <-
+  ggplot(data = morphometric_summaries) +
+  geom_abline(intercept = 0 , slope = 1, linetype = "dashed", color = "grey30") + 
+  geom_point(aes(y = mean_BMI_increase, x = mean_BMI_decrease), alpha = 0.5) +
+  geom_errorbar(aes(y = mean_BMI_increase, x = mean_BMI_decrease, 
+                    ymin = mean_BMI_increase - se_BMI_increase, 
+                    ymax = mean_BMI_increase + se_BMI_increase), alpha = 0.2) +
+  geom_errorbarh(aes(y = mean_BMI_increase, x = mean_BMI_decrease, 
+                     xmin = mean_BMI_decrease - se_BMI_decrease, 
+                     xmax = mean_BMI_decrease + se_BMI_decrease), alpha = 0.2) +
+  coord_fixed(ratio = 1) +
+  xlab(expression(paste("Mean body mass index in ", italic("REDUCED")," brood (± SE)"))) +
+  ylab(expression(paste("Mean body mass index in ", italic("ENLARGED")," brood (± SE)"))) +
+  scale_y_continuous(limits = c(0.025, 0.0475)) +
+  scale_x_continuous(limits = c(0.025, 0.0475))
+```
+
+#### Visualization of raw data showing of chick responses to experimental manipulation of sibling competition in paired nests. 
+In the following three panels, each point is a pair of nests that were controlled for by hatch date and brood size. Dashed diagonal line represents the null hypothesis in which there was no change in chick body morphometrics in response to the experimental brood enlargmenet or reduction. Points on the lower-right space of the plot show brood pairs in which chicks in the reduced treatment were larger in body traits than the increased treatment counterparts. Conversely, points in the upper-left space show brood pairs in which chicks in the elarged treatment were larger in body size traits than the reduced counterparts. Error bars illustrate the SE of a brood (horizontal is the reduced brood, vertical is the enlarged brood).
+
+##### Figure of paired nests tarsi measurements at Day 14
+```{r, fig.width = 4, echo=FALSE}
+tarsus_plot
+```
+
+##### Figure of paired nests body weight measurements at Day 14
+```{r, fig.width = 4, echo=FALSE}
+mass_plot
+```
+
+##### Figure of paired nests body mass index measurements at Day 14
+```{r, fig.width = 4, echo=FALSE}
+BMI_plot
+```
+
+# Main Modeling Results
+
+### Chick Mortality Model
+
+#### `mortality ~ net_rearing_manipulation + day14_brood_sex_ratio`
+This model tests for a change in the number of chicks between the day of manipulation and day 14 in response to the net change in brood size and the rearing brood sex ratio.
+```{r, results="hide", cache=TRUE}
+m = lmer(change_chick_n ~ net_rearing_manipulation  +       
+              brood_sex_ratio +     
+              (1|day14_measurer) + 
+              (1|rear_area) +      
+              (1|rear_nest_OH_l) + (1|hatch_year),       
+              data = mou, REML = reml        
+         )   
+```
+
+```{r, echo=FALSE, results="hide", cache=TRUE}
+o_m = m_out(name = "mortality", model = m, round_ = 3, nsim = 5000, aic = TRUE, N = nrow(mou))
+```
+
+```{r, echo=FALSE, eval=FALSE}
+summary(m)
+summary(glht(m))
+```
+
+#### Figure M: Response of change in chick number between day 0 and day 14 to net change in brood size and sex ratio
+```{r table M, echo=FALSE}
+plot(allEffects(m))
+o_m_source_note = paste("N = ", o_m$N[1], "nests, AIC = ", round(as.numeric(o_m$AIC[1], 4), 2), ", Marginal R-squared = ", round(as.numeric(o_m$R2_mar[1], 4), 2), ", Conditional R-squared = ", round(as.numeric(o_m$R2_con[1], 4), 2))
+```
+
+#### Table M
+```{r, echo=FALSE}
+o_m %>% 
+  mutate(CI_String = ifelse(!is.na(lwr_r),
+                     paste0("[", 
+                     lwr_r, ", ", 
+                     upr_r, "]"),
+                     NA)) %>% 
+  dplyr::select(type, effect, estimate_r, CI_String) %>% 
+  gt(groupname_col = "type") %>% 
+  cols_label(effect = "",
+             estimate_r = "Parameter estimate",
+             CI_String = "95% credible interval") %>% 
+  cols_align(align = "left",
+             columns = vars(effect)) %>% 
+  tab_options(row_group.font.weight = "bold",
+              row_group.background.color = "grey",
+              table.font.size = 12,
+              data_row.padding = 3,
+              row_group.padding = 4,
+              summary_row.padding = 2,
+              column_labels.font.size = 14,
+              row_group.font.size = 12,
+              table.width = pct(80)) %>% 
+  tab_source_note(source_note = o_m_source_note)
+```
+
+```{r, echo=FALSE, eval=FALSE}
+# require(here)
+    # source(here::here('../R/tools.R'))
+    reml = TRUE # models fitted with REML (TRUE) or ML (FALSE)
+    # source(here::here('../R/prepare_data.R'))
+
+# MORTALITY - Table M 
+    # prepare data
+        # net_rearing_namipulation as continues
+
+      
+        # net_rearing_namipulation as a factor      
+         mf = lmer(change_chick_n ~ net_rearing_manipulation_factor  +       
+                      brood_sex_ratio +     
+                      (1|day14_measurer) + (1|rear_area) +      
+                      (1|rear_nest_OH_l) + (1|hatch_year),       
+                      data = mou, REML = reml)
+
+    # TABLE M + model assumptions
+        
+        
+
+```
+
+### Chick Size: Tarsus Model
+
+```{r, echo=FALSE, results="hide"}
+dtg = a[complete.cases(a),.(day_14_tarsus_length, net_rearing_manipulation, net_rearing_manipulation_factor, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID, hatch_mom_Ring, genetic_dad)]
+cor(dtg$d14_rear_nest_brood_size, dtg$net_rearing_manipulation)
+```
+
+#### `day_14_tarsus_length ~ net_rearing_manipulation + chick_sex_molec + day_14_brood_sex_ratio`
+This model tests for a change in chick tarsus length at day 14 in response to the net change in brood size following manipulation, the sex of the chick, and the rearing brood sex ratio.
+```{r, cache=TRUE}
+mt0g =  lmer(day_14_tarsus_length ~ 
+    net_rearing_manipulation +  
+    chick_sex_molec + 
+    brood_sex_ratio +
+    (1|day14_measurer) + (1|rear_area) + 
+    (1|rear_nest_OH_l) + (1|hatch_year)  +
+    (1|rear_nest_breed_ID) +
+    (1|hatch_mom_Ring) + (1|genetic_dad),
+    data = dtg, REML = reml
+    )
+```
+
+```{r, echo=FALSE, eval=FALSE}
+summary(mt0g) 
+summary(glht(mt0g))
+```
+
+```{r, echo=FALSE, cache=TRUE, eval=FALSE}
+plot(allEffects(mt0g))
+```
+
+#### Figure T: Response of chick body weight to net change in brood size and sex
+```{r, echo=FALSE, cache=TRUE}
+m=  lmer(day_14_tarsus_length ~ 
+                net_rearing_manipulation +  
+                chick_sex_molec + 
+                brood_sex_ratio +
+                (1|day14_measurer) + (1|rear_area) + 
+                (1|rear_nest_OH_l) + (1|hatch_year)  +
+                (1|rear_nest_breed_ID) +
+                (1|hatch_mom_Ring) + (1|genetic_dad),
+                data = dtg, REML = reml
+                )
+
+        nsim <- 5000
+        bsim <- sim(m, n.sim=nsim)  
+            
+        # coefficients
+            v = apply(bsim@fixef, 2, quantile, prob=c(0.5))
+            ci = apply(bsim@fixef, 2, quantile, prob=c(0.025, 0.975))
+
+        # values to predict for
+            newD=data.frame(net_rearing_manipulation = seq(min(dtg$net_rearing_manipulation), max(dtg$net_rearing_manipulation), length.out = 300), chick_sex_molec = c('m','f','u'), brood_sex_ratio = mean(dtg$brood_sex_ratio))
+
+        # exactly the model which was used has to be specified here 
+            X <- model.matrix(~ net_rearing_manipulation +  
+                    chick_sex_molec + 
+                    brood_sex_ratio ,data=newD)   
+                        
+        # calculate predicted values and creditability intervals
+            newD$pred <-(X%*%v) 
+            predmatrix <- matrix(nrow=nrow(newD), ncol=nsim)
+            for(i in 1:nsim) predmatrix[,i] <- (X%*%bsim@fixef[i,])
+                predmatrix[predmatrix < 0] <- 0
+                newD$lwr <- apply(predmatrix, 1, quantile, prob=0.025)
+                newD$upr <- apply(predmatrix, 1, quantile, prob=0.975)
+                newD$pred <- apply(predmatrix, 1, quantile, prob=0.5)
+        pt=newD    
+        #ptm = pt[pt$chick_sex_molec == 'm',]
+        #ptf = pt[pt$chick_sex_molec == 'f',]
+        #ptu = pt[pt$chick_sex_molec == 'u',]
+
+        ggplot(pt, aes(x = net_rearing_manipulation, y = pred))  +
+            geom_ribbon(aes(ymin=lwr, ymax=upr, x=net_rearing_manipulation, fill = chick_sex_molec), alpha = 0.2, show.legend = NA)+ 
+            geom_line(aes(col =chick_sex_molec)) + 
+            labs(x = 'Number of taken/added chicks', y = 'Tarsus length [mm]')
+
+```
+```{r, echo=FALSE, results="hide", cache=TRUE}
+o_mt0g = m_out(name = "a - net chick", model = mt0g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
+```
+
+#### Table T: effect sizes for chick tarsus model
+```{r, echo=FALSE}
+o_mt0g_source_note = paste("N = ", o_mt0g$N[1], "nests, AIC = ", round(as.numeric(o_mt0g$AIC[1], 4), 2), ", Marginal R-squared = ", round(as.numeric(o_mt0g$R2_mar[1], 4), 2), ", Conditional R-squared = ", round(as.numeric(o_mt0g$R2_con[1], 4), 2))
+
+o_mt0g %>% 
+  mutate(CI_String = ifelse(!is.na(lwr_r),
+                     paste0("[", 
+                     lwr_r, ", ", 
+                     upr_r, "]"),
+                     NA)) %>% 
+  dplyr::select(type, effect, estimate_r, CI_String) %>% 
+  gt(groupname_col = "type") %>% 
+  cols_label(effect = "",
+             estimate_r = "Parameter estimate",
+             CI_String = "95% credible interval") %>% 
+  cols_align(align = "left",
+             columns = vars(effect)) %>% 
+  tab_options(row_group.font.weight = "bold",
+              row_group.background.color = "grey",
+              table.font.size = 12,
+              data_row.padding = 3,
+              row_group.padding = 4,
+              summary_row.padding = 2,
+              column_labels.font.size = 14,
+              row_group.font.size = 12,
+              table.width = pct(80)) %>% 
+  tab_source_note(source_note = o_mt0g_source_note)
+```
+
+### Chick Size: Weight Model
+```{r, echo=FALSE}
+dwg = a[complete.cases(a),.(day_14_weight, net_rearing_manipulation, net_rearing_manipulation_factor, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID, hatch_mom_Ring, genetic_dad)]
+            
+```
+
+#### `day_14_weight ~ net_rearing_manipulation + chick_sex_molec + day14_brood_sex_ratio`
+This model tests for a change in chick body weight at day 14 in response to the net change in brood size following manipulation, the sex of the chick, and the rearing brood sex ratio.
+```{r, cache=TRUE}
+mw0g =  lmer(day_14_weight ~ 
+  net_rearing_manipulation +  
+  chick_sex_molec + 
+  brood_sex_ratio +
+  (1|day14_measurer) + (1|rear_area) + 
+  (1|rear_nest_OH_l) + (1|hatch_year)  +
+  (1|rear_nest_breed_ID) +
+  (1|hatch_mom_Ring) + (1|genetic_dad),
+  data = dwg, REML = reml
+  )
+```
+
+```{r, echo=FALSE, eval=FALSE}
+summary(mw0g) 
+summary(glht(mw0g))
+```
+
+```{r, echo=FALSE, eval=FALSE}
+plot(allEffects(mw0g))
+```
+
+#### Figure W: Response of chick body weight to net change in brood size and sex
+```{r, echo=FALSE, cache=TRUE}
+ m=  lmer(day_14_weight ~ 
+                net_rearing_manipulation +  
+                chick_sex_molec + 
+                brood_sex_ratio +
+                (1|day14_measurer) + (1|rear_area) + 
+                (1|rear_nest_OH_l) + (1|hatch_year)  +
+                (1|rear_nest_breed_ID) +
+                (1|hatch_mom_Ring) + (1|genetic_dad),
+                data = dwg, REML = reml
+                )
+
+        nsim <- 5000
+        bsim <- sim(m, n.sim=nsim)  
+            
+        # coefficients
+            v = apply(bsim@fixef, 2, quantile, prob=c(0.5))
+            ci = apply(bsim@fixef, 2, quantile, prob=c(0.025, 0.975))
+
+        # values to predict for
+            newD=data.frame(net_rearing_manipulation = seq(min(dtg$net_rearing_manipulation), max(dtg$net_rearing_manipulation), length.out = 300), chick_sex_molec = c('m','f','u'), brood_sex_ratio = mean(dtg$brood_sex_ratio))
+
+        # exactly the model which was used has to be specified here 
+            X <- model.matrix(~ net_rearing_manipulation +  
+                    chick_sex_molec + 
+                    brood_sex_ratio ,data=newD)   
+                        
+        # calculate predicted values and creditability intervals
+            newD$pred <-(X%*%v) 
+            predmatrix <- matrix(nrow=nrow(newD), ncol=nsim)
+            for(i in 1:nsim) predmatrix[,i] <- (X%*%bsim@fixef[i,])
+                predmatrix[predmatrix < 0] <- 0
+                newD$lwr <- apply(predmatrix, 1, quantile, prob=0.025)
+                newD$upr <- apply(predmatrix, 1, quantile, prob=0.975)
+                newD$pred <- apply(predmatrix, 1, quantile, prob=0.5)
+        pt=newD    
+        #ptm = pt[pt$chick_sex_molec == 'm',]
+        #ptf = pt[pt$chick_sex_molec == 'f',]
+        #ptu = pt[pt$chick_sex_molec == 'u',]
+
+        ggplot(pt, aes(x = net_rearing_manipulation, y = pred))  +
+            geom_ribbon(aes(ymin=lwr, ymax=upr, x=net_rearing_manipulation, fill = chick_sex_molec), alpha = 0.2, show.legend = NA)+ 
+            geom_line(aes(col =chick_sex_molec)) + 
+            labs(x = 'Number of taken/added chicks', y = 'Weight [g]')  
+
+```
+```{r, echo=FALSE, results="hide", cache=TRUE}
+o_mw0g = m_out(name = "a - net chick", model = mw0g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
+```
+
+#### Table W: effect sizes for chick weight model
+```{r, echo=FALSE}
+o_mw0g_source_note = paste("N = ", o_mw0g$N[1], "nests, AIC = ", round(as.numeric(o_mw0g$AIC[1], 4), 2), ", Marginal R-squared = ", round(as.numeric(o_mw0g$R2_mar[1], 4), 2), ", Conditional R-squared = ", round(as.numeric(o_mw0g$R2_con[1], 4), 2))
+
+o_mw0g %>% 
+  mutate(CI_String = ifelse(!is.na(lwr_r),
+                     paste0("[", 
+                     lwr_r, ", ", 
+                     upr_r, "]"),
+                     NA)) %>% 
+  dplyr::select(type, effect, estimate_r, CI_String) %>% 
+  gt(groupname_col = "type") %>% 
+  cols_label(effect = "",
+             estimate_r = "Parameter estimate",
+             CI_String = "95% credible interval") %>% 
+  cols_align(align = "left",
+             columns = vars(effect)) %>% 
+  tab_options(row_group.font.weight = "bold",
+              row_group.background.color = "grey",
+              table.font.size = 12,
+              data_row.padding = 3,
+              row_group.padding = 4,
+              summary_row.padding = 2,
+              column_labels.font.size = 14,
+              row_group.font.size = 12,
+              table.width = pct(80)) %>% 
+  tab_source_note(source_note = o_mw0g_source_note)
+```
+
+### Chick Size: Body Mass Index Model
+
+```{r, echo=FALSE}            
+dmg = a[complete.cases(a),.(body_mass_index, net_rearing_manipulation, net_rearing_manipulation_factor, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID, hatch_mom_Ring, genetic_dad)]
+```
+
+#### `day_14_body_mass_index ~ net_rearing_manipulation + chick_sex_molec + day14_brood_sex_ratio`
+This model tests for a change in chick body mass index at day 14 in response to the net change in brood size following manipulation, the sex of the chick, and the rearing brood sex ratio.
+```{r, cache=TRUE} 
+mb0g =  lmer(body_mass_index ~ 
+    net_rearing_manipulation +  
+    chick_sex_molec + 
+    brood_sex_ratio +
+    (1|day14_measurer) + (1|rear_area) + 
+    (1|rear_nest_OH_l) + (1|hatch_year)  +
+    (1|rear_nest_breed_ID) +
+    (1|hatch_mom_Ring) + (1|genetic_dad),
+    data = dmg, REML = reml
+    )
+```
+
+```{r, echo=FALSE, eval=FALSE}
+summary(mb0g) 
+summary(glht(mb0g))
+```
+
+```{r, echo=FALSE, cache=TRUE, eval=FALSE}
+plot(allEffects(mb0g))
+```
+
+#### Figure B: Response of chick body mass index to net change in brood size and sex
+```{r, echo=FALSE, cache=TRUE}
+m=  lmer(body_mass_index ~ 
+                net_rearing_manipulation +  
+                chick_sex_molec + 
+                brood_sex_ratio +
+                (1|day14_measurer) + (1|rear_area) + 
+                (1|rear_nest_OH_l) + (1|hatch_year)  +
+                (1|rear_nest_breed_ID) +
+                (1|hatch_mom_Ring) + (1|genetic_dad),
+                data = dmg, REML = reml
+                )
+
+        nsim <- 5000
+        bsim <- sim(m, n.sim=nsim)  
+            
+        # coefficients
+            v = apply(bsim@fixef, 2, quantile, prob=c(0.5))
+            ci = apply(bsim@fixef, 2, quantile, prob=c(0.025, 0.975))
+
+        # values to predict for
+            newD=data.frame(net_rearing_manipulation = seq(min(dtg$net_rearing_manipulation), max(dtg$net_rearing_manipulation), length.out = 300), chick_sex_molec = c('m','f','u'), brood_sex_ratio = mean(dtg$brood_sex_ratio))
+
+        # exactly the model which was used has to be specified here 
+            X <- model.matrix(~ net_rearing_manipulation +  
+                    chick_sex_molec + 
+                    brood_sex_ratio ,data=newD)   
+                        
+        # calculate predicted values and creditability intervals
+            newD$pred <-(X%*%v) 
+            predmatrix <- matrix(nrow=nrow(newD), ncol=nsim)
+            for(i in 1:nsim) predmatrix[,i] <- (X%*%bsim@fixef[i,])
+                predmatrix[predmatrix < 0] <- 0
+                newD$lwr <- apply(predmatrix, 1, quantile, prob=0.025)
+                newD$upr <- apply(predmatrix, 1, quantile, prob=0.975)
+                newD$pred <- apply(predmatrix, 1, quantile, prob=0.5)
+        pt=newD    
+        #ptm = pt[pt$chick_sex_molec == 'm',]
+        #ptf = pt[pt$chick_sex_molec == 'f',]
+        #ptu = pt[pt$chick_sex_molec == 'u',]
+
+        ggplot(pt, aes(x = net_rearing_manipulation, y = pred))  +
+            geom_ribbon(aes(ymin=lwr, ymax=upr, x=net_rearing_manipulation, fill = chick_sex_molec), alpha = 0.2, show.legend = NA)+ 
+            geom_line(aes(col =chick_sex_molec)) +theme_MB + 
+            labs(x = 'Number of taken/added chicks', y = 'Body mass index')
+
+```
+```{r, echo=FALSE, results="hide", cache=TRUE}
+o_mb0g = m_out(name = "a - net chick", model = mb0g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
+```
+
+#### Table B: effect sizes for chick body mass index model
+```{r, echo=FALSE}
+o_mb0g_source_note = paste("N = ", o_mb0g$N[1], "nests, AIC = ", round(as.numeric(o_mb0g$AIC[1], 4), 2), ", Marginal R-squared = ", round(as.numeric(o_mb0g$R2_mar[1], 4), 2), ", Conditional R-squared = ", round(as.numeric(o_mb0g$R2_con[1], 4), 2))
+
+o_mb0g %>% 
+  mutate(CI_String = ifelse(!is.na(lwr_r),
+                     paste0("[", 
+                     lwr_r, ", ", 
+                     upr_r, "]"),
+                     NA)) %>% 
+  dplyr::select(type, effect, estimate_r, CI_String) %>% 
+  gt(groupname_col = "type") %>% 
+  cols_label(effect = "",
+             estimate_r = "Parameter estimate",
+             CI_String = "95% credible interval") %>% 
+  cols_align(align = "left",
+             columns = vars(effect)) %>% 
+  tab_options(row_group.font.weight = "bold",
+              row_group.background.color = "grey",
+              table.font.size = 12,
+              data_row.padding = 3,
+              row_group.padding = 4,
+              summary_row.padding = 2,
+              column_labels.font.size = 14,
+              row_group.font.size = 12,
+              table.width = pct(80)) %>% 
+  tab_source_note(source_note = o_mb0g_source_note)
+```
+
+# Exploratory Modeling Results (confined analyses to paired nests)
+
+### Paired nest: Chick Tarsus Model
+```{r, echo=FALSE, results="hide"}
+dtg = p[complete.cases(p),.(day_14_tarsus_length, day_14_weight, body_mass_index,net_rearing_manipulation, net_rearing_manipulation_factor, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID, hatch_mom_Ring, genetic_dad, pair_ID)] # limit data
+```
+
+#### PAIRED: `day_14_tarsus_length ~ net_rearing_manipulation + chick_sex_molec + day_14_brood_sex_ratio`
+```{r, cache=TRUE}
+mt0gE =  lmer(day_14_tarsus_length ~ 
+    net_rearing_manipulation +  
+    chick_sex_molec + 
+    brood_sex_ratio +
+    (1|day14_measurer) + (1|rear_area) + 
+    (1|rear_nest_OH_l) + (1|hatch_year)  +
+    (1|rear_nest_breed_ID) +
+    (1|hatch_mom_Ring) + (1|genetic_dad) +
+    (1|pair_ID),
+    data = dtg, REML = reml
+    )
+```
+
+```{r, echo=FALSE, eval=FALSE}
+summary(mt0gE) 
+summary(glht(mt0gE))
+```
+
+```{r, echo=FALSE}
+plot(allEffects(mt0gE))
+```
+
+```{r, echo=FALSE, results="hide", cache=TRUE}
+o_mt0gE = m_out(name = "a - net chick", model = mt0gE, round_ = 3, nsim = 5000, aic = TRUE, N = 2070)
+```
+
+#### Table TE: effect sizes for chick tarsus model of paired nests
+```{r, echo=FALSE}
+o_mt0gE_source_note = paste("N = ", o_mt0gE$N[1], "nests, AIC = ", 
+                            round(as.numeric(o_mt0gE$AIC[1], 4), 2), 
+                            ", Marginal R-squared = ", 
+                            round(as.numeric(o_mt0gE$R2_mar[1], 4), 2), 
+                            ", Conditional R-squared = ", 
+                            round(as.numeric(o_mt0gE$R2_con[1], 4), 2))
+
+o_mt0gE %>% 
+  mutate(CI_String = ifelse(!is.na(lwr_r),
+                     paste0("[", 
+                     lwr_r, ", ", 
+                     upr_r, "]"),
+                     NA)) %>% 
+  dplyr::select(type, effect, estimate_r, CI_String) %>% 
+  gt(groupname_col = "type") %>% 
+  cols_label(effect = "",
+             estimate_r = "Parameter estimate",
+             CI_String = "95% credible interval") %>% 
+  cols_align(align = "left",
+             columns = vars(effect)) %>% 
+  tab_options(row_group.font.weight = "bold",
+              row_group.background.color = "grey",
+              table.font.size = 12,
+              data_row.padding = 3,
+              row_group.padding = 4,
+              summary_row.padding = 2,
+              column_labels.font.size = 14,
+              row_group.font.size = 12,
+              table.width = pct(80)) %>% 
+  tab_source_note(source_note = o_mt0gE_source_note)
+```
+
+### Paired nest: Chick Weight Model
+
+#### PAIRED: `day_14_weight ~ net_rearing_manipulation + chick_sex_molec + day_14_brood_sex_ratio`
+```{r, cache=TRUE}
+mw0gE =  lmer(day_14_weight ~ 
+              net_rearing_manipulation +  
+              chick_sex_molec + 
+              brood_sex_ratio +
+              (1|day14_measurer) + (1|rear_area) + 
+              (1|rear_nest_OH_l) + (1|hatch_year)  +
+              (1|rear_nest_breed_ID) +
+              (1|hatch_mom_Ring) + (1|genetic_dad) +
+              (1|pair_ID),
+              data = dtg, REML = reml
+              )
+```
+
+```{r, echo=FALSE, eval=FALSE}
+summary(mw0gE) 
+summary(glht(mw0gE))
+```
+
+```{r, echo=FALSE}
+plot(allEffects(mw0gE))
+```
+
+```{r, echo=FALSE, results="hide", cache=TRUE}
+o_mw0gE = m_out(name = "a - net chick", model = mw0gE, round_ = 3, nsim = 5000, aic = TRUE, N = 2070)
+```
+
+#### Table WE: effect sizes for chick weight model of paired nests
+```{r, echo=FALSE}
+o_mw0gE_source_note = paste("N = ", o_mw0gE$N[1], "nests, AIC = ", 
+                            round(as.numeric(o_mw0gE$AIC[1], 4), 2), 
+                            ", Marginal R-squared = ", 
+                            round(as.numeric(o_mw0gE$R2_mar[1], 4), 2), 
+                            ", Conditional R-squared = ", 
+                            round(as.numeric(o_mw0gE$R2_con[1], 4), 2))
+
+o_mw0gE %>% 
+  mutate(CI_String = ifelse(!is.na(lwr_r),
+                     paste0("[", 
+                     lwr_r, ", ", 
+                     upr_r, "]"),
+                     NA)) %>% 
+  dplyr::select(type, effect, estimate_r, CI_String) %>% 
+  gt(groupname_col = "type") %>% 
+  cols_label(effect = "",
+             estimate_r = "Parameter estimate",
+             CI_String = "95% credible interval") %>% 
+  cols_align(align = "left",
+             columns = vars(effect)) %>% 
+  tab_options(row_group.font.weight = "bold",
+              row_group.background.color = "grey",
+              table.font.size = 12,
+              data_row.padding = 3,
+              row_group.padding = 4,
+              summary_row.padding = 2,
+              column_labels.font.size = 14,
+              row_group.font.size = 12,
+              table.width = pct(80)) %>% 
+  tab_source_note(source_note = o_mw0gE_source_note)
+```
+
+### Paired nest: Chick Body Mass Index Model
+
+#### PAIRED: `day_14_body_mass_index ~ net_rearing_manipulation + chick_sex_molec + day_14_brood_sex_ratio`
+```{r, cache=TRUE}            
+mb0gE =  lmer(body_mass_index ~ 
+              net_rearing_manipulation +  
+              chick_sex_molec + 
+              brood_sex_ratio +
+              (1|day14_measurer) + (1|rear_area) + 
+              (1|rear_nest_OH_l) + (1|hatch_year)  +
+              (1|rear_nest_breed_ID) +
+              (1|hatch_mom_Ring) + (1|genetic_dad)+ (1|pair_ID),
+              data = dtg, REML = reml
+              )
+```
+
+```{r, echo=FALSE, eval=FALSE}
+summary(mb0gE) 
+summary(glht(mb0gE))
+```
+
+```{r, echo=FALSE}
+plot(allEffects(mb0gE))
+```
+
+```{r, echo=FALSE, results="hide", cache=TRUE}
+o_mb0gE = m_out(name = "a - net chick", model = mb0gE, round_ = 3, nsim = 5000, aic = TRUE, N = 2070)
+```
+
+#### Table BE: effect sizes for chick body mass index model of paired nests
+```{r, echo=FALSE}
+o_mb0gE_source_note = paste("N = ", o_mb0gE$N[1], "nests, AIC = ", 
+                            round(as.numeric(o_mb0gE$AIC[1], 4), 2), 
+                            ", Marginal R-squared = ", 
+                            round(as.numeric(o_mb0gE$R2_mar[1], 4), 2), 
+                            ", Conditional R-squared = ", 
+                            round(as.numeric(o_mb0gE$R2_con[1], 4), 2))
+
+o_mb0gE %>% 
+  mutate(CI_String = ifelse(!is.na(lwr_r),
+                     paste0("[", 
+                     lwr_r, ", ", 
+                     upr_r, "]"),
+                     NA)) %>% 
+  dplyr::select(type, effect, estimate_r, CI_String) %>% 
+  gt(groupname_col = "type") %>% 
+  cols_label(effect = "",
+             estimate_r = "Parameter estimate",
+             CI_String = "95% credible interval") %>% 
+  cols_align(align = "left",
+             columns = vars(effect)) %>% 
+  tab_options(row_group.font.weight = "bold",
+              row_group.background.color = "grey",
+              table.font.size = 12,
+              data_row.padding = 3,
+              row_group.padding = 4,
+              summary_row.padding = 2,
+              column_labels.font.size = 14,
+              row_group.font.size = 12,
+              table.width = pct(80)) %>% 
+  tab_source_note(source_note = o_mb0gE_source_note)
+```
+
+# Extended Results
+The following models test a change in the responses (i.e., *Chick tarsus at day 14*, *Chick body weight at day 14*, and *Chick body mass index at day 14*) to 1) the size of the brood at day 14 (Tables with suffix "b"), chick sex, and the brood sex ratio, or 2) a sex-specific change in the number chicks moved during the manipulation, and the brood sex ratio (Tables with suffix "c"). The results of these *a priori* models reveal the same effects as that shown in the previous tables that simply tested the effect of net manipulation change in brood size, sex, and brood sex ratio.
+
+#### `day_14_tarsus_length ~ d14_rear_nest_brood_size + chick_sex_molec + day14_brood_sex_ratio`
+This model tests for a change in chick tarsus length at day 14 in response to the size of the brood at day 14, the sex of the chick, and the rearing brood sex ratio.
+```{r, cache=TRUE}
+mt14g =  lmer(day_14_tarsus_length ~ 
+    d14_rear_nest_brood_size +  
+    chick_sex_molec + 
+    brood_sex_ratio +
+    (1|day14_measurer) + (1|rear_area) + 
+    (1|rear_nest_OH_l) + (1|hatch_year)  +
+    (1|rear_nest_breed_ID) + (1|hatch_mom_Ring) + (1|genetic_dad),
+    data = dtg, REML = reml
+    )
+```
+
+```{r, echo=FALSE, eval=FALSE}
+summary(mt14g) 
+summary(glht(mt14g))
+```
+
+```{r, echo=FALSE}
+plot(allEffects(mt14g))
+```
+```{r, echo=FALSE, results="hide", cache=TRUE}
+o_mt14g  = m_out(name = "b - day 14 chick #", model = mt14g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
+```
+
+#### Table Tb
+```{r, echo=FALSE}
+o_mt14g_source_note = paste("N = ", o_mt14g$N[1], "nests, AIC = ", round(as.numeric(o_mt14g$AIC[1], 4), 2), ", Marginal R-squared = ", round(as.numeric(o_mt14g$R2_mar[1], 4), 2), ", Conditional R-squared = ", round(as.numeric(o_mt14g$R2_con[1], 4), 2))
+
+o_mt14g %>% 
+  mutate(CI_String = ifelse(!is.na(lwr_r),
+                     paste0("[", 
+                     lwr_r, ", ", 
+                     upr_r, "]"),
+                     NA)) %>% 
+  dplyr::select(type, effect, estimate_r, CI_String) %>% 
+  gt(groupname_col = "type") %>% 
+  cols_label(effect = "",
+             estimate_r = "Parameter estimate",
+             CI_String = "95% credible interval") %>% 
+  cols_align(align = "left",
+             columns = vars(effect)) %>% 
+  tab_options(row_group.font.weight = "bold",
+              row_group.background.color = "grey",
+              table.font.size = 12,
+              data_row.padding = 3,
+              row_group.padding = 4,
+              summary_row.padding = 2,
+              column_labels.font.size = 14,
+              row_group.font.size = 12,
+              table.width = pct(80)) %>% 
+  tab_source_note(source_note = o_mt14g_source_note)
+```
+
+#### `day_14_tarsus_length ~ net_rearing_manipulation x chick_sex_molec + day14_brood_sex_ratio`
+This model tests for a change in chick tarsus length at day 14 in response to sex-specific net change in brood size following manipulation and the rearing brood sex ratio.
+```{r, cache=TRUE}
+mt0gs =  lmer(day_14_tarsus_length ~ 
+    net_rearing_manipulation * chick_sex_molec + 
+    brood_sex_ratio +
+    (1|day14_measurer) + (1|rear_area) + 
+    (1|rear_nest_OH_l) + (1|hatch_year)  +
+    (1|rear_nest_breed_ID)+
+    (1|hatch_mom_Ring) + (1|genetic_dad),
+    data = dtg, REML = reml
+    )
+```
+
+```{r, echo=FALSE, eval=FALSE}
+summary(mt0gs) 
+summary(glht(mt0gs))
+```
+
+```{r, echo=FALSE}
+plot(allEffects(mt0gs))
+```
+```{r, echo=FALSE, results="hide", cache=TRUE}
+o_mt0gs = m_out(name = "c - (a) with sex interaction", model = mt0gs, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
+```
+
+#### Table Tc
+```{r, echo=FALSE}
+o_mt0gs_source_note = paste("N = ", o_mt0gs$N[1], "nests, AIC = ", round(as.numeric(o_mt0gs$AIC[1], 4), 2), ", Marginal R-squared = ", round(as.numeric(o_mt0gs$R2_mar[1], 4), 2), ", Conditional R-squared = ", round(as.numeric(o_mt0gs$R2_con[1], 4), 2))
+
+o_mt0gs %>% 
+  mutate(CI_String = ifelse(!is.na(lwr_r),
+                     paste0("[", 
+                     lwr_r, ", ", 
+                     upr_r, "]"),
+                     NA)) %>% 
+  dplyr::select(type, effect, estimate_r, CI_String) %>% 
+  gt(groupname_col = "type") %>% 
+  cols_label(effect = "",
+             estimate_r = "Parameter estimate",
+             CI_String = "95% credible interval") %>% 
+  cols_align(align = "left",
+             columns = vars(effect)) %>% 
+  tab_options(row_group.font.weight = "bold",
+              row_group.background.color = "grey",
+              table.font.size = 12,
+              data_row.padding = 3,
+              row_group.padding = 4,
+              summary_row.padding = 2,
+              column_labels.font.size = 14,
+              row_group.font.size = 12,
+              table.width = pct(80)) %>% 
+  tab_source_note(source_note = o_mt0gs_source_note)
+```
+
+```{r, eval=FALSE, echo=FALSE}
+            sname = 'Table_T'
+
+            aic = data.table(rbind(o_mt0g,o_mt14g,o_mt0gs))[AIC!=""]
+            aic[, AIC := as.numeric(AIC)]
+            aic[, deltaAIC := AIC-min(AIC)]
+            aic[, prob := round(exp(-0.5*deltaAIC)/sum(exp(-0.5*deltaAIC)),2)]
+            aic[, ER := round(max(prob)/prob, 2)]
+            aic[order(deltaAIC)]
+            o = rbind(o_mt0g,o_mt14g,o_mt0gs)
+            o$deltaAIC[o$AIC!=""] = aic$deltaAIC[match(o$model[o$AIC!=""], aic$model)]
+            o$prob[o$AIC!=""] = aic$prob[match(o$model[o$AIC!=""], aic$model)]
+            o$ER[o$AIC!=""] = aic$ER[match(o$model[o$AIC!=""], aic$model)]
+            write.xlsx(o, paste0("Output/",sname,'.xlsx'), sheetName='Estimates&AIC')
+            #write_xlsx(rbind(o_mt0g,o_mt14g,o_mt0g), paste0("Outputs/",sname,'.xlsx'), sheetName='AICcompar', append = TRUE)
+
+            m_ass(name = 'Table Ta - tarsus-net+sex + day14_brood_sex_ratio', mo = mt0g, dat = dtg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+            
+            m_ass(name = 'Table Tb - tarsus-d14+sex + day14_brood_sex_ratio', mo = mt14g, dat = dtg, fixed = c('d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+
+            m_ass(name = 'Table Tc - tarsus-netxsex + day14_brood_sex_ratio', mo = mt0gs, dat = dtg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+```
+
+#### `day_14_weight ~ d14_rear_nest_brood_size + chick_sex_molec + day14_brood_sex_ratio`
+This model tests for a change in chick body weight at day 14 in response to the size of the brood at day 14, the sex of the chick, and the rearing brood sex ratio.
+```{r, cache=TRUE}
+mw14g =  lmer(day_14_weight ~ 
+  d14_rear_nest_brood_size +  
+  chick_sex_molec + 
+  brood_sex_ratio +
+  (1|day14_measurer) + (1|rear_area) + 
+  (1|rear_nest_OH_l) + (1|hatch_year)  +
+  (1|rear_nest_breed_ID) + (1|hatch_mom_Ring) + (1|genetic_dad),
+  data = dwg, REML = reml
+  )
+```
+
+```{r, echo=FALSE, eval=FALSE}
+summary(mw14g) 
+summary(glht(mw14g))
+```
+
+```{r, echo=FALSE}
+plot(allEffects(mw14g))
+```
+```{r, echo=FALSE, results="hide", cache=TRUE}
+o_mw14g  = m_out(name = "b - day 14 chick #", model = mw14g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
+
+```
+
+#### Table Wb
+```{r, echo=FALSE}
+o_mw14g_source_note = paste("N = ", o_mw14g$N[1], "nests, AIC = ", round(as.numeric(o_mw14g$AIC[1], 4), 2), ", Marginal R-squared = ", round(as.numeric(o_mw14g$R2_mar[1], 4), 2), ", Conditional R-squared = ", round(as.numeric(o_mw14g$R2_con[1], 4), 2))
+
+o_mw14g %>% 
+  mutate(CI_String = ifelse(!is.na(lwr_r),
+                     paste0("[", 
+                     lwr_r, ", ", 
+                     upr_r, "]"),
+                     NA)) %>% 
+  dplyr::select(type, effect, estimate_r, CI_String) %>% 
+  gt(groupname_col = "type") %>% 
+  cols_label(effect = "",
+             estimate_r = "Parameter estimate",
+             CI_String = "95% credible interval") %>% 
+  cols_align(align = "left",
+             columns = vars(effect)) %>% 
+  tab_options(row_group.font.weight = "bold",
+              row_group.background.color = "grey",
+              table.font.size = 12,
+              data_row.padding = 3,
+              row_group.padding = 4,
+              summary_row.padding = 2,
+              column_labels.font.size = 14,
+              row_group.font.size = 12,
+              table.width = pct(80)) %>% 
+  tab_source_note(source_note = o_mw14g_source_note)
+```
+
+#### `day_14_weight ~ net_rearing_manipulation x chick_sex_molec + day14_brood_sex_ratio`
+This model tests for a change in chick body weight at day 14 in response to a sex-specific net change in brood size following manipulation, the sex of the chick, and the rearing brood sex ratio.
+```{r, cache=TRUE}
+mw0gs =  lmer(day_14_weight ~ 
+  net_rearing_manipulation * chick_sex_molec + 
+  brood_sex_ratio +
+  (1|day14_measurer) + (1|rear_area) + 
+  (1|rear_nest_OH_l) + (1|hatch_year)  +
+  (1|rear_nest_breed_ID)+
+  (1|hatch_mom_Ring) + (1|genetic_dad),
+  data = dwg, REML = reml
+  )
+```
+
+```{r, echo=FALSE, eval=FALSE}
+summary(mw0gs) 
+summary(glht(mw0gs))
+```
+
+```{r, echo=FALSE}
+plot(allEffects(mw0gs))
+```
+```{r, echo=FALSE, results="hide", cache=TRUE}
+o_mw0gs = m_out(name = "c - (a) with sex interaction", model = mw0gs, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)   
+
+```
+
+#### Table Wc
+```{r, echo=FALSE}
+o_mw0gs_source_note = paste("N = ", o_mw0gs$N[1], "nests, AIC = ", 
+                            round(as.numeric(o_mw0gs$AIC[1], 4), 2), 
+                            ", Marginal R-squared = ", 
+                            round(as.numeric(o_mw0gs$R2_mar[1], 4), 2), 
+                            ", Conditional R-squared = ", 
+                            round(as.numeric(o_mw0gs$R2_con[1], 4), 2))
+
+o_mw0gs %>% 
+  mutate(CI_String = ifelse(!is.na(lwr_r),
+                     paste0("[", 
+                     lwr_r, ", ", 
+                     upr_r, "]"),
+                     NA)) %>% 
+  dplyr::select(type, effect, estimate_r, CI_String) %>% 
+  gt(groupname_col = "type") %>% 
+  cols_label(effect = "",
+             estimate_r = "Parameter estimate",
+             CI_String = "95% credible interval") %>% 
+  cols_align(align = "left",
+             columns = vars(effect)) %>% 
+  tab_options(row_group.font.weight = "bold",
+              row_group.background.color = "grey",
+              table.font.size = 12,
+              data_row.padding = 3,
+              row_group.padding = 4,
+              summary_row.padding = 2,
+              column_labels.font.size = 14,
+              row_group.font.size = 12,
+              table.width = pct(80)) %>% 
+  tab_source_note(source_note = o_mw0gs_source_note)
+```
+
+```{r, echo=FALSE, eval=FALSE}
+            sname = 'Table_W'
+
+            aic = data.table(rbind(o_mw0g,o_mw14g,o_mw0gs))[AIC!=""]
+            aic[, AIC := as.numeric(AIC)]
+            aic[, deltaAIC := AIC-min(AIC)]
+            aic[, prob := round(exp(-0.5*deltaAIC)/sum(exp(-0.5*deltaAIC)),2)]
+            aic[, ER := round(max(prob)/prob, 2)]
+            aic[order(deltaAIC)]
+            o = rbind(o_mw0g,o_mw14g,o_mw0gs)
+            o$deltaAIC[o$AIC!=""] = aic$deltaAIC[match(o$model[o$AIC!=""], aic$model)]
+            o$prob[o$AIC!=""] = aic$prob[match(o$model[o$AIC!=""], aic$model)]
+            o$ER[o$AIC!=""] = aic$ER[match(o$model[o$AIC!=""], aic$model)]
+            write.xlsx(o, paste0("Output/",sname,'.xlsx'), sheetName='Estimates&AIC')
+            
+            m_ass(name = 'Table Wa - weight-net+sex + day14_brood_sex_ratio', mo = mw0g, dat = dwg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+            
+            m_ass(name = 'Table Wa - weight-net+sex + day14_brood_sex_ratio', mo = mw14g, dat = dwg, fixed = c('d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+
+            m_ass(name = 'Table Wc - weight-netxsex + day14_brood_sex_ratio', mo = mw0gs, dat = dwg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+```
+
+####  `day_14_body_mass_index ~ d14_rear_nest_brood_size + chick_sex_molec + day14_brood_sex_ratio`
+This model tests for a change in chick body mass index at day 14 in response to the size of the brood at day 14, the sex of the chick, and the rearing brood sex ratio.
+```{r, cache=TRUE}
+mb14g =  lmer(body_mass_index ~ 
+    d14_rear_nest_brood_size +  
+    chick_sex_molec + 
+    brood_sex_ratio +
+    (1|day14_measurer) + (1|rear_area) + 
+    (1|rear_nest_OH_l) + (1|hatch_year)  +
+    (1|rear_nest_breed_ID)+
+    (1|hatch_mom_Ring) + (1|genetic_dad),
+    data = dmg, REML = reml
+    )
+```
+
+```{r, echo=FALSE, eval=FALSE}
+summary(mb14g) 
+summary(glht(mb14g))
+```
+
+```{r, echo=FALSE}
+plot(allEffects(mb14g))
+```
+```{r, echo=FALSE, results="hide", cache=TRUE}
+o_mb14g  = m_out(name = "b - day 14 chick #", model = mb14g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
+
+```
+
+#### Table Bb
+```{r, echo=FALSE}
+o_mb14g_source_note = paste("N = ", o_mb14g$N[1], "nests, AIC = ", round(as.numeric(o_mb14g$AIC[1], 4), 2), ", Marginal R-squared = ", round(as.numeric(o_mb14g$R2_mar[1], 4), 2), ", Conditional R-squared = ", round(as.numeric(o_mb14g$R2_con[1], 4), 2))
+
+o_mb14g %>% 
+  mutate(CI_String = ifelse(!is.na(lwr_r),
+                     paste0("[", 
+                     lwr_r, ", ", 
+                     upr_r, "]"),
+                     NA)) %>% 
+  dplyr::select(type, effect, estimate_r, CI_String) %>% 
+  gt(groupname_col = "type") %>% 
+  cols_label(effect = "",
+             estimate_r = "Parameter estimate",
+             CI_String = "95% credible interval") %>% 
+  cols_align(align = "left",
+             columns = vars(effect)) %>% 
+  tab_options(row_group.font.weight = "bold",
+              row_group.background.color = "grey",
+              table.font.size = 12,
+              data_row.padding = 3,
+              row_group.padding = 4,
+              summary_row.padding = 2,
+              column_labels.font.size = 14,
+              row_group.font.size = 12,
+              table.width = pct(80)) %>% 
+  tab_source_note(source_note = o_mb14g_source_note)
+```
+
+#### `day_14_body_mass_index ~ net_rearing_manipulation x chick_sex_molec + day14_brood_sex_ratio`
+This model tests for a change in chick body mass index at day 14 in response to a sex-specific net change in brood size following manipulation, the sex of the chick, and the rearing brood sex ratio.
+```{r, cache=TRUE}
+mb0gs =  lmer(body_mass_index ~ 
+    net_rearing_manipulation * chick_sex_molec + 
+    brood_sex_ratio +
+    (1|day14_measurer) + (1|rear_area) + 
+    (1|rear_nest_OH_l) + (1|hatch_year)  +
+    (1|rear_nest_breed_ID)+
+    (1|hatch_mom_Ring) + (1|genetic_dad),
+    data = dmg, REML = reml
+    )
+```
+
+```{r, echo=FALSE, eval=FALSE}
+summary(mb0gs) 
+summary(glht(mb0gs))
+```
+
+```{r, echo=FALSE}
+plot(allEffects(mb0gs))
+```
+```{r, echo=FALSE, results="hide", cache=TRUE}
+o_mb0gs = m_out(name = "c - (a) with sex interaction", model = mb0gs, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)   
+
+```
+#### Table Bc
+```{r, echo=FALSE}
+o_mb0gs_source_note = paste("N = ", o_mb0gs$N[1], "nests, AIC = ", 
+                            round(as.numeric(o_mb0gs$AIC[1], 4), 2), 
+                            ", Marginal R-squared = ", 
+                            round(as.numeric(o_mb0gs$R2_mar[1], 4), 2), 
+                            ", Conditional R-squared = ", 
+                            round(as.numeric(o_mb0gs$R2_con[1], 4), 2))
+
+o_mb0gs %>% 
+  mutate(CI_String = ifelse(!is.na(lwr_r),
+                     paste0("[", 
+                     lwr_r, ", ", 
+                     upr_r, "]"),
+                     NA)) %>% 
+  dplyr::select(type, effect, estimate_r, CI_String) %>% 
+  gt(groupname_col = "type") %>% 
+  cols_label(effect = "",
+             estimate_r = "Parameter estimate",
+             CI_String = "95% credible interval") %>% 
+  cols_align(align = "left",
+             columns = vars(effect)) %>% 
+  tab_options(row_group.font.weight = "bold",
+              row_group.background.color = "grey",
+              table.font.size = 12,
+              data_row.padding = 3,
+              row_group.padding = 4,
+              summary_row.padding = 2,
+              column_labels.font.size = 14,
+              row_group.font.size = 12,
+              table.width = pct(80)) %>% 
+  tab_source_note(source_note = o_mb0gs_source_note)
+```
+
+```{r, eval=FALSE, echo=FALSE}
+            sname = 'Table_B'
+
+            aic = data.table(rbind(o_mb0g,o_mb14g,o_mb0gs))[AIC!=""]
+            aic[, AIC := as.numeric(AIC)]
+            aic[, deltaAIC := AIC-min(AIC)]
+            aic[, prob := round(exp(-0.5*deltaAIC)/sum(exp(-0.5*deltaAIC)),2)]
+            aic[, ER := round(max(prob)/prob, 2)]
+            aic[order(deltaAIC)]
+            o = rbind(o_mb0g,o_mb14g,o_mb0gs)
+            o$deltaAIC[o$AIC!=""] = aic$deltaAIC[match(o$model[o$AIC!=""], aic$model)]
+            o$prob[o$AIC!=""] = aic$prob[match(o$model[o$AIC!=""], aic$model)]
+            o$ER[o$AIC!=""] = aic$ER[match(o$model[o$AIC!=""], aic$model)]
+            write.xlsx(o, paste0("Output/",sname,'.xlsx'), sheetName='Estimates&AIC')
+            #write_xlsx(rbind(o_mb0g,o_mb14g,o_mb0g), paste0("Outputs/",sname,'.xlsx'), sheetName='AICcompar', append = TRUE)
+
+            m_ass(name = 'Table Ba - BMI-net+sex + day14_brood_sex_ratio', mo = mb0g, dat = dmg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+            
+            m_ass(name = 'Table Bb - BMI-d14+sex + day14_brood_sex_ratio', mo = mb14g, dat = dmg, fixed = c('d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+
+            m_ass(name = 'Table Bc - BMI-netxsex + day14_brood_sex_ratio', mo = mb0gs, dat = dmg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+        # Table Be - Extended material
+```
+
+#### PAIRED: `day_14_tarsus_length ~ d14_rear_nest_brood_size + chick_sex_molec + day14_brood_sex_ratio`
+```{r, cache=TRUE}
+mt14gE =  lmer(day_14_tarsus_length ~ 
+               d14_rear_nest_brood_size +  
+               chick_sex_molec + 
+               brood_sex_ratio +
+               (1|day14_measurer) + (1|rear_area) + 
+               (1|rear_nest_OH_l) + (1|hatch_year)  +
+               (1|rear_nest_breed_ID) + (1|hatch_mom_Ring) + (1|genetic_dad) + (1|pair_ID),
+               data = dtg, REML = reml
+               )
+```
+
+```{r, echo=FALSE, eval=FALSE}
+summary(mt14gE) 
+summary(glht(mt14gE))
+```
+
+```{r, echo=FALSE}
+plot(allEffects(mt14gE))
+```
+
+```{r, echo=FALSE, results="hide", cache=TRUE}
+o_mt14gE  = m_out(name = "b - day 14 chick #", model = mt14gE, round_ = 3, nsim = 5000, aic = TRUE, N = 2070)
+```
+
+#### Table TEb
+```{r, echo=FALSE}
+o_mt14gE_source_note = paste("N = ", o_mt14gE$N[1], "nests, AIC = ", 
+                            round(as.numeric(o_mt14gE$AIC[1], 4), 2), 
+                            ", Marginal R-squared = ", 
+                            round(as.numeric(o_mt14gE$R2_mar[1], 4), 2), 
+                            ", Conditional R-squared = ", 
+                            round(as.numeric(o_mt14gE$R2_con[1], 4), 2))
+
+o_mt14gE %>% 
+  mutate(CI_String = ifelse(!is.na(lwr_r),
+                     paste0("[", 
+                     lwr_r, ", ", 
+                     upr_r, "]"),
+                     NA)) %>% 
+  dplyr::select(type, effect, estimate_r, CI_String) %>% 
+  gt(groupname_col = "type") %>% 
+  cols_label(effect = "",
+             estimate_r = "Parameter estimate",
+             CI_String = "95% credible interval") %>% 
+  cols_align(align = "left",
+             columns = vars(effect)) %>% 
+  tab_options(row_group.font.weight = "bold",
+              row_group.background.color = "grey",
+              table.font.size = 12,
+              data_row.padding = 3,
+              row_group.padding = 4,
+              summary_row.padding = 2,
+              column_labels.font.size = 14,
+              row_group.font.size = 12,
+              table.width = pct(80)) %>% 
+  tab_source_note(source_note = o_mt14gE_source_note)
+```
+
+#### PAIRED: `day_14_tarsus_length ~ net_rearing_manipulation x chick_sex_molec + day14_brood_sex_ratio`
+```{r, cache=TRUE}
+mt0gsE =  lmer(day_14_tarsus_length ~ 
+               net_rearing_manipulation*chick_sex_molec + 
+               brood_sex_ratio +
+               (1|day14_measurer) + (1|rear_area) + 
+               (1|rear_nest_OH_l) + (1|hatch_year)  +
+               (1|rear_nest_breed_ID)+
+               (1|hatch_mom_Ring) + (1|genetic_dad)+ (1|pair_ID),
+               data = dtg, REML = reml
+               )
+```
+
+```{r, echo=FALSE, eval=FALSE}
+summary(mt0gsE) 
+summary(glht(mt0gsE))
+```
+
+```{r, echo=FALSE}
+plot(allEffects(mt0gsE))  
+```
+
+```{r, echo=FALSE, results="hide", cache=TRUE}
+o_mt0gsE = m_out(name = "c - (a) with sex interaction", model = mt0gsE, round_ = 3, nsim = 5000, aic = TRUE, N = 2070)   
+```
+
+#### Table TEc
+```{r, echo=FALSE}
+o_mt0gsE_source_note = paste("N = ", o_mt0gsE$N[1], "nests, AIC = ", 
+                            round(as.numeric(o_mt0gsE$AIC[1], 4), 2), 
+                            ", Marginal R-squared = ", 
+                            round(as.numeric(o_mt0gsE$R2_mar[1], 4), 2), 
+                            ", Conditional R-squared = ", 
+                            round(as.numeric(o_mt0gsE$R2_con[1], 4), 2))
+
+o_mt0gsE %>% 
+  mutate(CI_String = ifelse(!is.na(lwr_r),
+                     paste0("[", 
+                     lwr_r, ", ", 
+                     upr_r, "]"),
+                     NA)) %>% 
+  dplyr::select(type, effect, estimate_r, CI_String) %>% 
+  gt(groupname_col = "type") %>% 
+  cols_label(effect = "",
+             estimate_r = "Parameter estimate",
+             CI_String = "95% credible interval") %>% 
+  cols_align(align = "left",
+             columns = vars(effect)) %>% 
+  tab_options(row_group.font.weight = "bold",
+              row_group.background.color = "grey",
+              table.font.size = 12,
+              data_row.padding = 3,
+              row_group.padding = 4,
+              summary_row.padding = 2,
+              column_labels.font.size = 14,
+              row_group.font.size = 12,
+              table.width = pct(80)) %>% 
+  tab_source_note(source_note = o_mt0gsE_source_note)
+```
+
+```{r, eval=FALSE, echo=FALSE}
+sname = 'Table_TEP'
+aic = data.table(rbind(o_mt0g,o_mt14g,o_mt0gs))[AIC!=""]
+aic[, AIC := as.numeric(AIC)]
+aic[, deltaAIC := AIC-min(AIC)]
+aic[, prob := round(exp(-0.5*deltaAIC)/sum(exp(-0.5*deltaAIC)),2)]
+aic[, ER := round(max(prob)/prob, 2)]
+aic[order(deltaAIC)]
+o = rbind(o_mt0g,o_mt14g,o_mt0gs)
+o$deltaAIC[o$AIC!=""] = aic$deltaAIC[match(o$model[o$AIC!=""], aic$model)]
+o$prob[o$AIC!=""] = aic$prob[match(o$model[o$AIC!=""], aic$model)]
+o$ER[o$AIC!=""] = aic$ER[match(o$model[o$AIC!=""], aic$model)]
+write.xlsx(o, paste0("Output/",sname,'.xlsx'), sheetName='Estimates&AIC')
+#write_xlsx(rbind(o_mt0g,o_mt14g,o_mt0g), paste0("Outputs/",sname,'.xlsx'), sheetName='AICcompar', append = TRUE)
+
+            m_ass(name = 'Table TEPa - tarsus-net+sex + day14_brood_sex_ratio', mo = mt0g, dat = dtg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+            
+            m_ass(name = 'Table TEPb - tarsus-d14+sex + day14_brood_sex_ratio', mo = mt14g, dat = dtg, fixed = c('d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+
+            m_ass(name = 'Table TEPc - tarsus-netxsex + day14_brood_sex_ratio', mo = mt0gs, dat = dtg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/") 
+```
+
+#### PAIRED: `day_14_weight ~ d14_rear_nest_brood_size + chick_sex_molec + day14_brood_sex_ratio`
+```{r, cache=TRUE}
+mw14gE =  lmer(day_14_weight ~ 
+               d14_rear_nest_brood_size +  
+               chick_sex_molec + 
+               brood_sex_ratio +
+               (1|day14_measurer) + (1|rear_area) + 
+               (1|rear_nest_OH_l) + (1|hatch_year)  +
+               (1|rear_nest_breed_ID) + (1|hatch_mom_Ring) + (1|genetic_dad) + (1|pair_ID),
+               data = dtg, REML = reml
+               )
+```
+
+```{r, echo=FALSE, eval=FALSE}
+summary(mw14gE) 
+summary(glht(mw14gE))
+```
+
+```{r, echo=FALSE}
+plot(allEffects(mw14gE))
+```
+
+```{r, echo=FALSE, results="hide", cache=TRUE}
+o_mw14gE  = m_out(name = "b - day 14 chick #", model = mw14gE, round_ = 3, nsim = 5000, aic = TRUE, N = 2070)
+```
+
+#### Table WEb
+```{r, echo=FALSE}
+o_mw14gE_source_note = paste("N = ", o_mw14gE$N[1], "nests, AIC = ", 
+                            round(as.numeric(o_mw14gE$AIC[1], 4), 2), 
+                            ", Marginal R-squared = ", 
+                            round(as.numeric(o_mw14gE$R2_mar[1], 4), 2), 
+                            ", Conditional R-squared = ", 
+                            round(as.numeric(o_mw14gE$R2_con[1], 4), 2))
+
+o_mw14gE %>% 
+  mutate(CI_String = ifelse(!is.na(lwr_r),
+                     paste0("[", 
+                     lwr_r, ", ", 
+                     upr_r, "]"),
+                     NA)) %>% 
+  dplyr::select(type, effect, estimate_r, CI_String) %>% 
+  gt(groupname_col = "type") %>% 
+  cols_label(effect = "",
+             estimate_r = "Parameter estimate",
+             CI_String = "95% credible interval") %>% 
+  cols_align(align = "left",
+             columns = vars(effect)) %>% 
+  tab_options(row_group.font.weight = "bold",
+              row_group.background.color = "grey",
+              table.font.size = 12,
+              data_row.padding = 3,
+              row_group.padding = 4,
+              summary_row.padding = 2,
+              column_labels.font.size = 14,
+              row_group.font.size = 12,
+              table.width = pct(80)) %>% 
+  tab_source_note(source_note = o_mw14gE_source_note)
+```
+
+#### PAIRED: `day_14_weight ~ net_rearing_manipulation x chick_sex_molec + day14_brood_sex_ratio`
+```{r, cache=TRUE}
+mw0gsE =  lmer(day_14_weight ~ 
+    net_rearing_manipulation * chick_sex_molec + 
+    brood_sex_ratio +
+    (1|day14_measurer) + (1|rear_area) + 
+    (1|rear_nest_OH_l) + (1|hatch_year)  +
+    (1|rear_nest_breed_ID)+
+    (1|hatch_mom_Ring) + (1|genetic_dad)+ (1|pair_ID),
+    data = dtg, REML = reml
+    )
+```
+
+```{r, echo=FALSE, eval=FALSE}
+summary(mw0gsE) 
+summary(glht(mw0gsE))
+```
+
+```{r, echo=FALSE}
+plot(allEffects(mw0gsE))  
+```
+
+```{r, echo=FALSE, results="hide", cache=TRUE}
+o_mw0gsE = m_out(name = "c - (a) with sex interaction", model = mw0gsE, round_ = 3, nsim = 5000, aic = TRUE, N = 2070)   
+```
+
+#### Table WEc
+```{r, echo=FALSE}
+o_mw0gsE_source_note = paste("N = ", o_mw0gsE$N[1], "nests, AIC = ", 
+                            round(as.numeric(o_mw0gsE$AIC[1], 4), 2), 
+                            ", Marginal R-squared = ", 
+                            round(as.numeric(o_mw0gsE$R2_mar[1], 4), 2), 
+                            ", Conditional R-squared = ", 
+                            round(as.numeric(o_mw0gsE$R2_con[1], 4), 2))
+
+o_mw0gsE %>% 
+  mutate(CI_String = ifelse(!is.na(lwr_r),
+                     paste0("[", 
+                     lwr_r, ", ", 
+                     upr_r, "]"),
+                     NA)) %>% 
+  dplyr::select(type, effect, estimate_r, CI_String) %>% 
+  gt(groupname_col = "type") %>% 
+  cols_label(effect = "",
+             estimate_r = "Parameter estimate",
+             CI_String = "95% credible interval") %>% 
+  cols_align(align = "left",
+             columns = vars(effect)) %>% 
+  tab_options(row_group.font.weight = "bold",
+              row_group.background.color = "grey",
+              table.font.size = 12,
+              data_row.padding = 3,
+              row_group.padding = 4,
+              summary_row.padding = 2,
+              column_labels.font.size = 14,
+              row_group.font.size = 12,
+              table.width = pct(80)) %>% 
+  tab_source_note(source_note = o_mw0gsE_source_note)
+```
+
+```{r, eval=FALSE, echo=FALSE}
+# Table WEP  and model assumptions
+            
+            sname = 'Table_WEP'
+
+            aic = data.table(rbind(o_mt0g,o_mt14g,o_mt0gs))[AIC!=""]
+            aic[, AIC := as.numeric(AIC)]
+            aic[, deltaAIC := AIC-min(AIC)]
+            aic[, prob := round(exp(-0.5*deltaAIC)/sum(exp(-0.5*deltaAIC)),2)]
+            aic[, ER := round(max(prob)/prob, 2)]
+            aic[order(deltaAIC)]
+            o = rbind(o_mt0g,o_mt14g,o_mt0gs)
+            o$deltaAIC[o$AIC!=""] = aic$deltaAIC[match(o$model[o$AIC!=""], aic$model)]
+            o$prob[o$AIC!=""] = aic$prob[match(o$model[o$AIC!=""], aic$model)]
+            o$ER[o$AIC!=""] = aic$ER[match(o$model[o$AIC!=""], aic$model)]
+            write.xlsx(o, paste0("Output/",sname,'.xlsx'), sheetName='Estimates&AIC')
+            #write_xlsx(rbind(o_mt0g,o_mt14g,o_mt0g), paste0("Outputs/",sname,'.xlsx'), sheetName='AICcompar', append = TRUE)
+
+            m_ass(name = 'Table WEPa - weight-netxsex + day14_brood_sex_ratio-net+sex + day14_brood_sex_ratio', mo = mt0g, dat = dtg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+            
+            m_ass(name = 'Table WEPb - weight-d14+sex + day14_brood_sex_ratio', mo = mt14g, dat = dtg, fixed = c('d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+
+            m_ass(name = 'Table WEPc - weight-netxsex + day14_brood_sex_ratio', mo = mt0gs, dat = dtg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+```
+
+
+#### PAIRED: `day_14_body_mass_index ~ d14_rear_nest_brood_size + chick_sex_molec + day14_brood_sex_ratio`
+```{r, cache=TRUE} 
+mb14gE =  lmer(body_mass_index ~ 
+              d14_rear_nest_brood_size +  
+              chick_sex_molec + 
+              brood_sex_ratio +
+              (1|day14_measurer) + (1|rear_area) + 
+              (1|rear_nest_OH_l) + (1|hatch_year)  +
+              (1|rear_nest_breed_ID)+
+              (1|hatch_mom_Ring) + (1|genetic_dad)+ (1|pair_ID),
+              data = dtg, REML = reml
+              )
+```
+
+```{r, echo=FALSE, eval=FALSE}
+summary(mb14gE) 
+summary(glht(mb14gE))
+```
+
+```{r, echo=FALSE}
+plot(allEffects(mb14gE))
+```
+
+```{r, echo=FALSE, results="hide", cache=TRUE}
+o_mb14gE  = m_out(name = "b - day 14 chick #", model = mb14gE, round_ = 3, nsim = 5000, aic = TRUE, N = 2070)
+```
+
+#### Table BEb
+```{r, echo=FALSE}
+o_mb14gE_source_note = paste("N = ", o_mb14gE$N[1], "nests, AIC = ", 
+                            round(as.numeric(o_mb14gE$AIC[1], 4), 2), 
+                            ", Marginal R-squared = ", 
+                            round(as.numeric(o_mb14gE$R2_mar[1], 4), 2), 
+                            ", Conditional R-squared = ", 
+                            round(as.numeric(o_mb14gE$R2_con[1], 4), 2))
+
+o_mb14gE %>% 
+  mutate(CI_String = ifelse(!is.na(lwr_r),
+                     paste0("[", 
+                     lwr_r, ", ", 
+                     upr_r, "]"),
+                     NA)) %>% 
+  dplyr::select(type, effect, estimate_r, CI_String) %>% 
+  gt(groupname_col = "type") %>% 
+  cols_label(effect = "",
+             estimate_r = "Parameter estimate",
+             CI_String = "95% credible interval") %>% 
+  cols_align(align = "left",
+             columns = vars(effect)) %>% 
+  tab_options(row_group.font.weight = "bold",
+              row_group.background.color = "grey",
+              table.font.size = 12,
+              data_row.padding = 3,
+              row_group.padding = 4,
+              summary_row.padding = 2,
+              column_labels.font.size = 14,
+              row_group.font.size = 12,
+              table.width = pct(80)) %>% 
+  tab_source_note(source_note = o_mb14gE_source_note)
+```
+
+#### PAIRED: `day_14_body_mass_index ~ net_rearing_manipulation x chick_sex_molec + day14_brood_sex_ratio`
+```{r, cache=TRUE} 
+mb0gsE =  lmer(body_mass_index ~ 
+               net_rearing_manipulation * chick_sex_molec + 
+               brood_sex_ratio +
+               (1|day14_measurer) + (1|rear_area) + 
+               (1|rear_nest_OH_l) + (1|hatch_year)  +
+               (1|rear_nest_breed_ID)+
+               (1|hatch_mom_Ring) + (1|genetic_dad)+ (1|pair_ID),
+               data = dtg, REML = reml
+               )
+```
+
+```{r, echo=FALSE, eval=FALSE}
+summary(mb0gsE) 
+summary(glht(mb0gsE))
+```
+
+```{r, echo=FALSE}
+plot(allEffects(mb0gsE))
+```
+
+```{r, echo=FALSE, results="hide", cache=TRUE}
+o_mb0gsE = m_out(name = "c - (a) with sex interaction", model = mb0gsE, round_ = 3, nsim = 5000, aic = TRUE, N = 2070)   
+```
+
+#### Table BEc
+```{r, echo=FALSE}
+o_mb0gsE_source_note = paste("N = ", o_mb0gsE$N[1], "nests, AIC = ", 
+                            round(as.numeric(o_mb0gsE$AIC[1], 4), 2), 
+                            ", Marginal R-squared = ", 
+                            round(as.numeric(o_mb0gsE$R2_mar[1], 4), 2), 
+                            ", Conditional R-squared = ", 
+                            round(as.numeric(o_mb0gsE$R2_con[1], 4), 2))
+
+o_mb0gsE %>% 
+  mutate(CI_String = ifelse(!is.na(lwr_r),
+                     paste0("[", 
+                     lwr_r, ", ", 
+                     upr_r, "]"),
+                     NA)) %>% 
+  dplyr::select(type, effect, estimate_r, CI_String) %>% 
+  gt(groupname_col = "type") %>% 
+  cols_label(effect = "",
+             estimate_r = "Parameter estimate",
+             CI_String = "95% credible interval") %>% 
+  cols_align(align = "left",
+             columns = vars(effect)) %>% 
+  tab_options(row_group.font.weight = "bold",
+              row_group.background.color = "grey",
+              table.font.size = 12,
+              data_row.padding = 3,
+              row_group.padding = 4,
+              summary_row.padding = 2,
+              column_labels.font.size = 14,
+              row_group.font.size = 12,
+              table.width = pct(80)) %>% 
+  tab_source_note(source_note = o_mb0gsE_source_note)
+```
+
+```{r, eval=FALSE, echo=FALSE}
+sname = 'Table_BEP'
+
+aic = data.table(rbind(o_mb0g,o_mb14g,o_mb0gs))[AIC!=""]
+aic[, AIC := as.numeric(AIC)]
+aic[, deltaAIC := AIC-min(AIC)]
+aic[, prob := round(exp(-0.5*deltaAIC)/sum(exp(-0.5*deltaAIC)),2)]
+aic[, ER := round(max(prob)/prob, 2)]
+aic[order(deltaAIC)]
+o = rbind(o_mb0g,o_mb14g,o_mb0gs)
+o$deltaAIC[o$AIC!=""] = aic$deltaAIC[match(o$model[o$AIC!=""], aic$model)]
+o$prob[o$AIC!=""] = aic$prob[match(o$model[o$AIC!=""], aic$model)]
+o$ER[o$AIC!=""] = aic$ER[match(o$model[o$AIC!=""], aic$model)]
+write.xlsx(o, paste0("Output/",sname,'.xlsx'), sheetName='Estimates&AIC')
+#write_xlsx(rbind(o_mb0g,o_mb14g,o_mb0g), paste0("Outputs/",sname,'.xlsx'), sheetName='AICcompar', append = TRUE)
+
+m_ass(name = 'Table BEPa - BMI-net+sex + day14_brood_sex_ratio', mo = mb0g, dat = dtg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+
+m_ass(name = 'Table BEPb - BMI-d14+sex + day14_brood_sex_ratio', mo = mb14g, dat = dtg, fixed = c('d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+
+m_ass(name = 'Table BEPc - BMI-netxsex + day14_brood_sex_ratio', mo = mb0gs, dat = dtg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
+```
