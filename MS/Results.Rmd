@@ -1195,8 +1195,8 @@ mortality_plot <-
   geom_jitter(aes(y = as.numeric(change_chick_n_increase), x = as.numeric(change_chick_n_decrease)), 
               alpha = 0.5, width = 0.1, height = 0.2) +
   coord_fixed(ratio = 1) +
-  xlab(expression(paste("Number is dead chicks in ", italic("REDUCED")," brood (± SE)"))) +
-  ylab(expression(paste("Number is dead chicks in ", italic("ENLARGED")," brood (± SE)"))) +
+  xlab(expression(paste("Number of dead chicks in ", italic("REDUCED")," brood (± SE)"))) +
+  ylab(expression(paste("Number of dead chicks in ", italic("ENLARGED")," brood (± SE)"))) +
   scale_y_continuous(limits = c(-1, 10)) +
   scale_x_continuous(limits = c(-1, 10)) +
   annotate(geom = "text", y = 7.25, x = 8.5, angle = 45,
