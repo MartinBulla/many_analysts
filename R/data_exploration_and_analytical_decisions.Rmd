@@ -1,0 +1,782 @@
+---
+title: "Data Exploration and Analytical Decisions"
+author: "Luke J. Eberhart-Phillips and Martin Bulla"
+date: "`r Sys.time()`"
+output: 
+    html_document: 
+        code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
+```
+
+## Libraries
+
+```{r, message = FALSE}
+library(tidyverse)
+library(lme4)
+library(standardize)
+library(kableExtra)
+library(ggpubr)
+library(here)
+library(effects)
+library(performance)
+library(GGally)
+```
+
+## Plotting Theme
+```{r}
+# define the plotting theme to be used in subsequent ggplots
+luke_theme <- 
+  theme_bw() +
+  theme(
+    text = element_text(family = "Franklin Gothic Book"),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 8),
+    axis.title.x = element_text(size = 10),
+    axis.text.x  = element_text(size = 8), 
+    axis.title.y = element_text(size = 10),
+    axis.text.y = element_text(size = 8),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.ticks = element_line(size = 0.5, colour = "grey40"),
+    axis.ticks.length = unit(0.2, "cm"),
+    panel.border = element_rect(linetype = "solid", colour = "grey")
+  )
+
+# set the ggplotting theme
+theme_set(luke_theme)
+```
+
+## Data Import and tidy
+
+```{r data import}
+BT_data <- read.csv(here("Data/blue_tit_data.csv"), stringsAsFactors = FALSE)
+```
+
+```{r}
+BT_data_tidy <-
+  BT_data %>% 
+  # select variables of interest
+  select(chick_ring_number, hatch_year, hatch_nest_breed_ID, rear_nest_breed_ID, rear_area, hatch_mom_Ring, 
+         genetic_dad_ring_.WP_or_EP., hatch_nest_OH, rear_nest_OH, d0_hatch_nest_brood_size, rear_d0_rear_nest_brood_size,
+         rear_nest_trt, net_rearing_manipulation, rear_Cs_at_start_of_rearing, d14_rear_nest_brood_size, 
+         day_14_tarsus_length, day_14_weight, day14_measurer, chick_sex_molec, number_chicks_fledged_from_rear_nest) %>%
+  # rename the genetic dad vaiable
+  rename(genetic_dad_ring = genetic_dad_ring_.WP_or_EP., 
+         d0_rear_nest_brood_size = rear_d0_rear_nest_brood_size) %>% 
+  # replace all "." with NA in factor variables
+  mutate(chick_sex_molec = as.factor(ifelse(chick_sex_molec == ".", NA, 
+                                ifelse(chick_sex_molec == "1", "Female", "Male"))),
+         chick_BMI = day_14_weight/(day_14_tarsus_length^2)) %>%
+  mutate_at(c("hatch_year", "hatch_nest_breed_ID", "rear_nest_breed_ID", 
+              "day14_measurer", "rear_nest_trt", "hatch_mom_Ring", 
+              "genetic_dad_ring", "chick_ring_number", "rear_area"), 
+            as.factor) %>% 
+  mutate_if(is.factor, list(~na_if(., "."))) %>% 
+  mutate_at(c("net_rearing_manipulation", "rear_Cs_at_start_of_rearing", "d0_hatch_nest_brood_size", 
+              "d0_rear_nest_brood_size", "number_chicks_fledged_from_rear_nest"), 
+            as.numeric) %>% 
+  # re-name the treatment groups
+  mutate(rear_nest_trt = 
+           as.factor(ifelse(rear_nest_trt == "5", "increase", 
+                        ifelse(rear_nest_trt == "6", "decrease", "control")))) %>% 
+  mutate(prop_change_in_brood_size = net_rearing_manipulation/d0_hatch_nest_brood_size)
+
+BT_nest_pairs <- 
+  BT_data_tidy %>% 
+  group_by(chick_ring_number) %>% 
+  mutate_at(c("hatch_nest_breed_ID", "rear_nest_breed_ID"), as.character) %>% 
+  mutate_at(c("hatch_nest_breed_ID", "rear_nest_breed_ID"), as.numeric) %>% 
+  dplyr::summarise(pair_ID_min = min(hatch_nest_breed_ID, rear_nest_breed_ID),
+            pair_ID_max = max(hatch_nest_breed_ID, rear_nest_breed_ID)) %>% 
+  left_join(BT_data_tidy, ., by = "chick_ring_number") %>% 
+  select(hatch_nest_breed_ID, rear_nest_breed_ID, d0_hatch_nest_brood_size,
+         d0_rear_nest_brood_size, rear_nest_trt, net_rearing_manipulation,
+         rear_Cs_at_start_of_rearing, pair_ID_min, pair_ID_max) %>%
+  distinct() %>% 
+  filter(pair_ID_min != pair_ID_max) %>% 
+  mutate(pair_ID = paste(pair_ID_min, pair_ID_max, sep = "_")) %>% 
+  select(hatch_nest_breed_ID, pair_ID)
+
+BT_data_tidy <- 
+  BT_data_tidy %>% 
+  left_join(., BT_nest_pairs, by = "hatch_nest_breed_ID")
+```
+
+## Distributions of variables of interest
+
+Step one:
+check the distribution of hatching dates and brood sizes between treatment categories to see whether the design was balanced. 
+
+If not balanced we will need to control for environmental and social factors (like differences in hatch date and brood size); if well matched across treatments (90%) we will attempt analyses with nest pairs (reduced/increased) or triads (reduced/increase/unmanipulated), i.e. no need to control for differences between reared and hatched nest; if the match is <90% we will control the models for the age differences between the reared and hatch nests and brood size. 
+
+### Brood Sizes
+
+#### Distributions of brood size
+plot of d0_hatch_nest_brood_size based on treatment
+
+```{r brood size distribution plots}
+BT_data_tidy %>% 
+  # histogram of brood size distribution across the three levels of treatment
+  ggplot() +
+  geom_histogram(aes(d0_hatch_nest_brood_size), alpha = 0.3, color = "grey40", fill = "#7570B3", 
+                 binwidth = 1, position = "identity") +
+  facet_grid(. ~ rear_nest_trt)
+```
+plot of rear_d0_rear_nest_brood_size based on treatment
+```{r}
+BT_data_tidy %>% 
+  # histogram of brood size distribution across the three levels of treatment
+  ggplot() +
+  geom_histogram(aes(d0_rear_nest_brood_size), alpha = 0.3, color = "grey40", fill = "#7570B3", 
+                 binwidth = 1, position = "identity") +
+  facet_grid(. ~ rear_nest_trt)
+```
+plot of rear_Cs_at_start_of_rearing based on treatment
+```{r}
+BT_data_tidy %>% 
+  # histogram of brood size distribution across the three levels of treatment
+  ggplot() +
+  geom_histogram(aes(rear_Cs_at_start_of_rearing), alpha = 0.3, color = "grey40", fill = "#7570B3", 
+                 binwidth = 1, position = "identity") +
+  facet_grid(. ~ rear_nest_trt)
+```
+
+proportional table of d0_hatch_nest_brood_size based on treatment *Increase*
+```{r brood size distribution table increase}
+BT_data_tidy %>% 
+  count(rear_nest_trt, d0_hatch_nest_brood_size) %>% 
+  group_by(rear_nest_trt) %>% 
+  mutate(prop = prop.table(n)) %>% 
+  filter(rear_nest_trt == "increase") %>% 
+  collect() %>%
+  kable() %>%
+  kable_styling() %>%
+  scroll_box(width = "100%")
+```
+
+proportional table of d0_hatch_nest_brood_size based on treatment *Decrease*
+```{r brood size distribution table decrease}
+BT_data_tidy %>% 
+  count(rear_nest_trt, d0_hatch_nest_brood_size) %>% 
+  group_by(rear_nest_trt) %>% 
+  mutate(prop = prop.table(n)) %>% 
+  filter(rear_nest_trt == "decrease") %>% 
+  collect() %>%
+  kable() %>%
+  kable_styling() %>%
+  scroll_box(width = "100%")
+```
+
+proportional table of d0_hatch_nest_brood_size based on treatment *Control*
+```{r brood size distribution table control}
+BT_data_tidy %>% 
+  count(rear_nest_trt, d0_hatch_nest_brood_size) %>% 
+  group_by(rear_nest_trt) %>% 
+  mutate(prop = prop.table(n)) %>% 
+  filter(rear_nest_trt == "control") %>% 
+  collect() %>%
+  kable() %>%
+  kable_styling() %>%
+  scroll_box(width = "100%")
+```
+Following this, it seems like 8 might be a good cutoff for the two groups of brood size (i.e., d0_hatch_nest_brood_size < 8 then "small", d0_hatch_nest_brood_size > 8 then "large")
+
+#### Is it true that manipulations were approximately "one-fourth" of the original brood size?
+No: it seems like the manipulations were roughly "one third" (as written in the field methods). vertical dashed lines in this plot show 0.25% of the hatched nest brood size (i.e., one-fourth).
+```{r}
+# plot of proportion of brood moved based on treatment
+BT_data_tidy %>% 
+  # create a group variable specifying if it was a small or large nest
+  mutate(proportional_change_in_brood_size = abs((rear_Cs_at_start_of_rearing / d0_rear_nest_brood_size) - 1)) %>% 
+  ggplot() +
+  geom_histogram(aes(proportional_change_in_brood_size), alpha = 0.3, color = "grey40", fill = "#7570B3", 
+                 binwidth = 0.1, position = "identity") +
+  geom_vline(xintercept = 0.25, linetype = "dashed") +
+  facet_grid(. ~ rear_nest_trt) +
+  xlab("Proportional change in brood size following manipulation")
+```
+
+Summary table of proportional changes. Note that mean and median proporational changes are ~0.3 (i.e., one-third). Max change was 0.5, min change was 0.09.
+```{r}
+# table of proportion of brood moved based on treatment
+BT_data_tidy %>% 
+  # create a group variable specifying if it was a small or large nest
+  mutate(proportional_change_in_brood_size = abs((rear_Cs_at_start_of_rearing / d0_rear_nest_brood_size) - 1)) %>% 
+  group_by(rear_nest_trt) %>% 
+  # select(proportional_change_in_brood_size) %>% 
+  dplyr::summarise(mean_ = mean(proportional_change_in_brood_size, na.rm = TRUE),
+            median_ = median(proportional_change_in_brood_size, na.rm = TRUE),
+            max_ = max(proportional_change_in_brood_size, na.rm = TRUE),
+            min_ = min(proportional_change_in_brood_size, na.rm = TRUE)) %>% 
+  mutate(across(where(is.numeric), round, 3)) %>% 
+  pivot_longer(-rear_nest_trt, values_to = "prop_change", names_to = "statistic") %>% 
+  collect() %>%
+  kable() %>%
+  kable_styling() %>%
+  scroll_box(width = "100%")
+```
+
+#### How well are paired nests paired according to brood size?
+plot of the difference in brood size between paired nests
+```{r brood size differences in pairs}
+BT_data_tidy %>% 
+  dplyr::select(pair_ID, d0_hatch_nest_brood_size, d0_rear_nest_brood_size, rear_nest_trt) %>% 
+  distinct() %>% 
+  # calculate differences in brood size between hatch and rear nests
+  mutate(diff_brood_size = d0_hatch_nest_brood_size - d0_rear_nest_brood_size) %>%
+  ggplot() +
+  geom_histogram(aes(diff_brood_size), alpha = 0.3, color = "grey40", fill = "#7570B3", 
+                 binwidth = 1, position = "identity") +
+  xlab("Difference in brood size between paired nests") +
+  facet_grid(rear_nest_trt ~ .)
+```
+
+proportional table of differences in brood sizes (seems like ~90% of nests are matched within 3 chicks of eachother)
+```{r prop table for large nest pairs}
+BT_data_tidy %>% 
+  select(pair_ID, d0_hatch_nest_brood_size, d0_rear_nest_brood_size, rear_nest_trt) %>% 
+  distinct() %>% 
+  # calculate differences in brood size between hatch and rear nests
+  mutate(paired_nest_diff_brood_size = d0_hatch_nest_brood_size - d0_rear_nest_brood_size) %>%
+  count(rear_nest_trt, paired_nest_diff_brood_size) %>% 
+  group_by(rear_nest_trt) %>% 
+  mutate(prop = round(prop.table(n), 3)) %>% 
+  collect() %>%
+  kable() %>%
+  kable_styling() %>%
+  scroll_box(width = "100%")
+```
+
+#### Identify outlier pairs that differ by more than 3 chicks in thier initial size?
+need to think about what to do with these 22 pairs. Perhaps drop them from analysis to match brood size of manipulated pairs to +/- 3 chicks. Or we control for initial brood size.
+```{r weird pairs}
+BT_data_tidy %>% 
+  # calculate differences in brood size between hatch and rear nests
+  mutate(paired_nest_diff_brood_size = d0_hatch_nest_brood_size - d0_rear_nest_brood_size) %>%
+  filter(paired_nest_diff_brood_size < -3 | paired_nest_diff_brood_size > 3) %>% 
+  select(pair_ID, hatch_nest_breed_ID, d0_hatch_nest_brood_size, d0_rear_nest_brood_size, paired_nest_diff_brood_size, rear_nest_trt) %>%
+  distinct() %>% 
+  arrange(hatch_nest_breed_ID) %>% 
+  collect() %>%
+  kable() %>%
+  kable_styling() %>%
+  scroll_box(width = "100%")
+```
+
+check for manipulated nest without a pair
+```{r, eval=FALSE}
+# function that does the opposite of "%in%"
+`%!in%` = Negate(`%in%`)
+
+# There are 3 rear_nest_breed_ID that are not in the hatch_nest_breed_ID. 
+# This means that there are 
+BT_data_tidy %>% 
+  filter(rear_nest_trt != "control") %>%
+  filter(rear_nest_breed_ID %!in% hatch_nest_breed_ID) %>% 
+  select(rear_nest_breed_ID, hatch_nest_breed_ID) %>% 
+  distinct()
+
+# There are 48 hatch_nest_breed_ID that are not in the rear_nest_breed_ID.
+BT_data_tidy %>% 
+  filter(rear_nest_trt != "control") %>%
+  filter(hatch_nest_breed_ID %!in% rear_nest_breed_ID) %>% 
+  select(rear_nest_breed_ID, hatch_nest_breed_ID) %>% 
+  distinct()
+```
+
+### Hatch Dates
+First need to check the time difference (in days) between the hatch date of the hatch nest and the hatch date of the rear nest. Ideally, these two are perfectly matched (as described in the methods) and have a difference of 0 days.
+```{r hatch dates check}
+# 25 cases in which the rear_nest had a hatch date 1 day after the hatch_nest (0.7%)
+# 13 cases in which the rear_nest had a hatch date 1 day before the hatch_nest (0.4%)
+# 3682 cases in which the hatch date of the rear_nest matched that of the hatch_nest (98.7%)
+BT_data_tidy %>% 
+  dplyr::summarise(date_matching = hatch_nest_OH - rear_nest_OH) %>% 
+  ggplot() +
+  geom_histogram(aes(date_matching), alpha = 0.3, color = "grey40", fill = "#7570B3", 
+                 binwidth = 1, position = "identity")
+BT_data_tidy %>% 
+  dplyr::summarise(date_matching = hatch_nest_OH - rear_nest_OH) %>% 
+  mutate_all(as.factor) %>%
+  select(date_matching) %>% 
+  summary()
+
+# seems like the matching was very successful! We can likely simply use the rear_nest hatch date then
+```
+
+Check annual variation in nesting phenology
+```{r hatch date standardization}
+# plot seasonal hatch date variation by year
+BT_data_tidy %>% 
+  ggplot() +
+  geom_histogram(aes(rear_nest_OH), alpha = 0.3, color = "grey40", fill = "#7570B3", 
+                 binwidth = 1, position = "identity") +
+  facet_grid(hatch_year ~ .)
+
+# wow, big differences! need to standardize hatch date by year to make years comparable
+
+# standardize the hatch date of the rear_nest by year (correcting for the minimum hatch date)
+BT_data_tidy <-
+  BT_data_tidy %>% 
+  group_by(hatch_year) %>% 
+  dplyr::summarise(min_rear_nest_OH = min(rear_nest_OH, na.rm = TRUE)) %>% 
+  left_join(., BT_data_tidy, by = "hatch_year") %>% 
+  mutate(rear_nest_OH_std = rear_nest_OH - min_rear_nest_OH) %>% 
+  select(-min_rear_nest_OH)
+
+# plot standardized hatch date variation by year
+BT_data_tidy %>% 
+  ggplot() +
+  geom_histogram(aes(rear_nest_OH_std), alpha = 0.3, color = "grey40", fill = "#7570B3", 
+                 binwidth = 1, position = "identity") +
+  facet_grid(hatch_year ~ .) 
+
+# great this looks good now
+```
+
+### Overall assesment of matching by brood size and hatch date:
+- the vast majority of pairs have the brood sizes that are within 3 chick difference (>90%)
+- Almost all pairs are matched for hatch date (99%) so this is not an issue to control for
+```{r hatch dates vs brood size difference plot}
+BT_data_tidy %>% 
+  # calculate differences in brood size between hatch and rear nests
+  mutate(diff_brood_size = d0_hatch_nest_brood_size - d0_rear_nest_brood_size) %>%
+  ggplot() +
+  geom_point(aes(y = diff_brood_size, x = rear_nest_OH_std), alpha = 0.3, color = "grey40", fill = "#7570B3", 
+                 binwidth = 1, position = "identity") +
+  geom_hline(yintercept = 3, linetype = "dashed", color = "lightgrey") +
+  geom_hline(yintercept = -3, linetype = "dashed", color = "lightgrey") +
+  ylab("Difference in brood size between paired nests") +
+  xlab("Standardized hatch date of rear nest") +
+  facet_grid(rear_nest_trt ~ .)
+```
+
+### Dependent variables
+
+#### Check distributions and correlations between tarsus length, body mass, and body mass index
+
+```{r}
+ggpairs(BT_data_tidy,
+        columns = c("day_14_weight", "day_14_tarsus_length", "chick_BMI", "number_chicks_fledged_from_rear_nest"))
+```
+
+
+- *day_14_tarsus_length*	Definition: Length of chick tarsometatarus in mm at day 14 after hatching
+```{r variation in tarsus data}
+BT_data_tidy %>% 
+  select(day_14_tarsus_length) %>% 
+  summary()
+```
+
+- *day_14_weight*	Definition: mass of chick in grams at day 14 after hatching
+```{r}
+BT_data_tidy %>% 
+  select(day_14_weight) %>% 
+  summary()
+```
+
+Check correlation between *day_14_tarsus_length* and *day_14_weight* with mixed effects model
+```{r}
+weight_tarsus_mod <-
+  lmer(day_14_weight ~ day_14_tarsus_length +
+         net_rearing_manipulation * rear_Cs_at_start_of_rearing +
+         net_rearing_manipulation * d14_rear_nest_brood_size + chick_sex_molec +
+         (1|day14_measurer) + (1|rear_area) + 
+         (1|rear_nest_OH_std) + (1|hatch_year) +
+         (1|rear_nest_breed_ID) + (1|hatch_mom_Ring) + 
+         (1|genetic_dad_ring),
+         data = BT_data_tidy)
+
+r2_nakagawa(weight_tarsus_mod) # marginal R-squared is 0.428
+
+plot(effect("day_14_tarsus_length", weight_tarsus_mod))
+```
+
+Body mass and tarsus are quite correlated but there is some variation (i.e., some individuals are heavier than normal for their structural size, whereas some are lighter than normal). Therefore, it could be useful to make a "body mass index" (BMI) of chick quality by dividing weight by tarsus^2. In humans, the BMI broadly categorizes a person as underweight, normal weight, overweight, or obese based on tissue mass (muscle, fat, and bone) and height (structural size). In our case we use tarsus instead of height and we can then derive a value that classifies a given chick as underweight for its tarsus size (e.g., maybe due to intense sibling competition), normal, or overwieght (e.g., maybe due to relaxed sibling competition).
+- *day_14_body_mass_index* Definition: we use the human body mass index $$day\_14\_weight / (day\_14\_tarsus\_length^2)$$
+```{r}
+BT_data_tidy %>% 
+  select(chick_BMI) %>% 
+  summary()
+```
+
+- *number_chicks_fledged_from_rear_nest*	"In the nest where the chick was reared, the number of chicks that survived to leave the nest"
+Note: Not sure if this variable is useful to incorporate into the model. Perhaps its best to simply use the mass, tarsus, or the BMI calculated above
+```{r}
+BT_data_tidy %>% 
+  select(number_chicks_fledged_from_rear_nest) %>% 
+  summary()
+```
+
+```{r}
+# additional data checking
+    # NAs
+        summary(BT_data_tidy)
+        summary(factor(BT_data_tidy$chick_sex_molec))
+        length(BT_data_tidy$hatch_mom_Ring[is.na(BT_data_tidy$hatch_mom_Ring)])
+        length(BT_data_tidy$genetic_dad_ring[is.na(BT_data_tidy$genetic_dad_ring)])
+
+    # distributions
+        summary(factor(BT_data_tidy$d14_rear_nest_brood_size)) 
+        summary(factor(BT_data_tidy$net_rearing_manipulation)) 
+        summary(as.factor(BT_data_tidy$rear_Cs_at_start_of_rearing))
+        summary(as.factor(BT_data_tidy$d0_hatch_nest_brood_size))
+        summary(BT_data_tidy$prop_change_in_brood_size)
+
+
+        ggplot(BT_data_tidy, aes(x = net_rearing_manipulation)) + 
+          geom_histogram()
+        
+        # in one case the brood size has increased by one chick
+        ggplot(BT_data_tidy, aes(x = d14_rear_nest_brood_size-rear_Cs_at_start_of_rearing, fill = rear_nest_trt)) + 
+          geom_histogram(position='dodge', bins = 12) + 
+          scale_x_continuous("dead chicks at day 14\n since start of experiment", 
+                             breaks = seq(-10,1, by = 1), 
+                             label = seq(-10,1, by = 1)) + 
+          xlab(c(-10, 1))
+
+        ggplot(BT_data_tidy, aes(x = (d14_rear_nest_brood_size-rear_Cs_at_start_of_rearing)/rear_Cs_at_start_of_rearing, 
+                                 fill = rear_nest_trt)) + 
+          geom_histogram(position='dodge', bins = 12) + 
+          scale_x_continuous("proportion of dead chicks at day 14\n since start of experiment",
+                             breaks = seq(-1,0.3, by = 0.1), 
+                             label = seq(-1,0.3, by = 0.1)) + xlab(c(-1, 0.3))
+        
+        ggplot(BT_data_tidy, aes(x = prop_change_in_brood_size,
+                                 fill = rear_nest_trt)) +
+          geom_histogram() + xlim(c(-0.5,0.5))
+        
+        ggplot(BT_data_tidy, aes(x = prop_change_in_brood_size,
+                                 fill = rear_nest_trt)) +
+          geom_histogram() + xlim(c(-0.5,0.5))
+```
+```{r, eval = FALSE}
+    # cor among  predictors
+    # chick numbers at hatching and day 14 
+
+# use 'd14_rear_nest_brood_size' in the models (big correlation between the 
+# number of chicks )
+BT_data_tidy %>% 
+  na.omit %>% 
+  select(rear_Cs_at_start_of_rearing,d14_rear_nest_brood_size) %>% 
+  cor()
+
+        ggplot(BT_data_tidy, aes(x = rear_Cs_at_start_of_rearing, y = d14_rear_nest_brood_size)) + 
+          geom_point() +facet_wrap(.~rear_nest_trt) + 
+          geom_smooth(method = 'lm') 
+        
+        ggplot(BT_data_tidy, aes(x = rear_Cs_at_start_of_rearing, y = rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)) + 
+          geom_point() +
+          facet_wrap(.~rear_nest_trt) + 
+          geom_smooth(method = 'lm')
+
+      # chick numbers at day 14 and net change in chick numbers
+        ggplot(BT_data_tidy, aes(x = rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)) + 
+          geom_histogram()       
+        
+        ggplot(BT_data_tidy, aes(x = as.factor(rear_nest_trt), y = rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)) + 
+          geom_boxplot()       
+        
+        ggplot(BT_data_tidy, aes(x = as.factor(rear_nest_trt), y = (rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)/rear_Cs_at_start_of_rearing)) + 
+          geom_boxplot()  
+
+        cor(BT_data_tidy$d14_rear_nest_brood_size, BT_data_tidy$net_rearing_manipulation)
+        
+        ggplot(BT_data_tidy, aes( y = net_rearing_manipulation, x = d14_rear_nest_brood_size)) +
+            geom_point() + stat_smooth(method = 'lm') + facet_wrap(.~ rear_nest_trt)
+
+
+        cor(BT_data_tidy$brood_sex_ratio, BT_data_tidy$net_rearing_manipulation)    
+        ggplot(BT_data_tidy, aes( y = net_rearing_manipulation, x = brood_sex_ratio)) +
+            geom_point() + stat_smooth(method = 'lm') + facet_wrap(.~ rear_nest_trt)
+
+      # chick mortality dataset
+      ggplot(mou, aes(x = rear_nest_OH_l)) + geom_histogram() +theme_MB
+      ggplot(mou, aes(x = net_rearing_manipulation, y = brood_sex_ratio)) + geom_point() + geom_smooth() +theme_MB
+      cor(mou$brood_sex_ratio, mou$net_rearing_manipulation)
+```
+
+```{r tools, echo=FALSE, results="hide"}
+using<-function(...) {
+    libs<-unlist(list(...))
+    req<-unlist(lapply(libs,require,character.only=TRUE))
+    need<-libs[req==FALSE]
+    if(length(need)>0){ 
+        install.packages(need)
+        lapply(need,require,character.only=TRUE)
+    }
+}
+
+
+# load/install packages
+  packages = c('anytime','arm','data.table', 'effects', 'foreach', 'ggplot2', 'ggthemes', 'glue',  'grid', 'here', 'htmlTable', 'lattice', 'lubridate', 'magrittr', 'multcomp', 'performance','plyr','raster','stringr','zoo', 'gt', 'tidyverse', 'ggpubr')
+  sapply(packages, function(x) suppressPackageStartupMessages(using(x)) )
+
+# Customized ggplot theme
+    theme_MB = theme(
+              axis.line=element_blank(),
+              #axis.line = element_line(colour="grey70", size=0.25),
+              axis.title = element_text(size=7, colour="grey30"),
+              axis.title.y = element_text(vjust=1),
+              axis.title.x = element_text(vjust=1),
+              axis.text=element_text(size=6),#, vjust = 0.5, hjust=1),# margin=units(0.5,"mm")),
+              axis.ticks.length=unit(0.5,"mm"),
+              #axis.ticks.margin,
+
+              strip.text.x = element_text(size = 6, color="grey30",  margin=margin(1,1,1,1,"mm")), #grey50
+              strip.background = element_rect(fill="grey99",colour="grey70", size=0.25),
+                #strip.background = element_blank(),
+                #strip.text = element_blank(),
+              panel.spacing = unit(0, "mm"),
+              panel.background=element_blank(),
+                #panel.border=element_blank(),
+              panel.border = element_rect(colour="grey70", size=0.25, fill = NA),
+              panel.grid = element_blank(),
+              legend.text=element_text(size=6),
+              legend.title=element_text(size=7)
+              )
+
+
+# model output function
+  m_out = function(name = "define", model = m, round_ = 3, nsim = 5000, aic = TRUE, save_sim = FALSE, N = NA){
+  bsim <- sim(model, n.sim=nsim)  
+    if(save_sim!=FALSE){save(bsim, file = paste0(save_sim, name,'.RData'))}
+   v = apply(bsim@fixef, 2, quantile, prob=c(0.5))
+   ci = apply(bsim@fixef, 2, quantile, prob=c(0.025,0.975)) 
+   oi=data.frame(model = name,type='fixed',effect=rownames(coef(summary(model))),estimate=v, lwr=ci[1,], upr=ci[2,])
+      rownames(oi) = NULL
+      oi$estimate_r=round(oi$estimate,round_)
+      oi$lwr_r=round(oi$lwr,round_)
+      oi$upr_r=round(oi$upr,round_)
+  oii=oi[c('model','type',"effect", "estimate_r","lwr_r",'upr_r')] 
+  
+   l=data.frame(summary(model)$varcor)
+   l = l[is.na(l$var2),]
+   l$var1 = ifelse(is.na(l$var1),"",l$var1)
+   l$pred = paste(l$grp,l$var1)
+
+   q050={}
+   q025={}
+   q975={}
+   pred={}
+   
+   # variance of random effects
+   for (ran in names(bsim@ranef)) {
+     ran_type = l$var1[l$grp == ran]
+     for(i in ran_type){
+      q050=c(q050,quantile(apply(bsim@ranef[[ran]][,,ran_type], 1, var), prob=c(0.5)))
+      q025=c(q025,quantile(apply(bsim@ranef[[ran]][,,ran_type], 1, var), prob=c(0.025)))
+      q975=c(q975,quantile(apply(bsim@ranef[[ran]][,,ran_type], 1, var), prob=c(0.975)))
+      pred= c(pred,paste(ran, i))
+      }
+     }
+   # residual variance
+   q050=c(q050,quantile(bsim@sigma^2, prob=c(0.5)))
+   q025=c(q025,quantile(bsim@sigma^2, prob=c(0.025)))
+   q975=c(q975,quantile(bsim@sigma^2, prob=c(0.975)))
+   pred= c(pred,'Residual')
+
+   ri=data.frame(model = name,type='random %',effect=pred, estimate_r=round(100*q050/sum(q050)), lwr_r=round(100*q025/sum(q025)), upr_r=round(100*q975/sum(q975)))
+     rx = ri[ri$effect == 'Residual',]
+     if(rx$lwr_r>rx$upr_r){ri$lwr_r[ri$effect == 'Residual'] = rx$upr_r; ri$upr_r[ri$effect == 'Residual'] = rx$lwr_r}
+     ri$estimate_r = paste0(ri$estimate_r,'%')
+     ri$lwr_r = paste0(ri$lwr_r,'%')
+     ri$upr_r = paste0(ri$upr_r,'%')
+  
+  x = rbind(oii,ri)
+    x$N = ""
+    x$N[1] = N
+    if (aic == TRUE){   
+        x$AIC = ""
+        x$AIC[1]=AIC(update(model,REML = FALSE))
+        x$delta = ""
+        x$prob = ""
+        x$ER = ""
+        }
+     x$R2_mar = ""
+     x$R2_con = ""
+     x$R2_mar [1]= r2_nakagawa(model)$R2_marginal
+     x$R2_con [1]= r2_nakagawa(model)$R2_conditional
+    return(x)
+  } 
+# model assumption function
+  m_ass = function(name = 'define', mo = m0, dat = d, fixed = NULL, categ = NULL, trans = NULL, spatial = TRUE, temporal = TRUE, PNG = TRUE, outdir = 'outdir'){
+   l=data.frame(summary(mo)$varcor)
+   l = l[is.na(l$var2),]
+   if(PNG == TRUE){
+    png(paste(outdir,name, ".png", sep=""), width=6,height=9,units="in",res=600)
+     }else{dev.new(width=6,height=9)}
+   
+   n = nrow(l)-1+length(fixed)+length(categ) + 4 + if(temporal==TRUE){1}else{0} + if(spatial==TRUE){1}else{0} 
+   par(mfrow=c(ceiling(n/3),3))
+   
+   scatter.smooth(fitted(mo),resid(mo),col='grey');abline(h=0, lty=2, col ='red')
+   scatter.smooth(fitted(mo),sqrt(abs(resid(mo))), col='grey')
+   qqnorm(resid(mo), main=list("Normal Q-Q Plot: residuals", cex=0.8),col='grey');qqline(resid(mo))
+   #unique(l$grp[l$grp!="Residual"])
+   for(i in unique(l$grp[l$grp!="Residual"])){
+    #i = "mean_year"
+    ll=ranef(mo)[names(ranef(mo))==i][[1]]
+    if(ncol(ll)==1){
+     qqnorm(ll[,1], main = paste(i,names(ll)[1]),col='grey');qqline(ll[,1], col ='red')
+     }else{
+      qqnorm(ll[,1], main = paste(i,names(ll)[1]),col='grey');qqline(ll[,1], col ='red')
+      qqnorm(ll[,2], main = paste(i,names(ll)[2]),col='grey');qqline(ll[,2], col ='red')
+     }
+    }
+    
+   # variables
+   scatter={} 
+   for (i in rownames(summary(mo)$coef)) {
+        #i = "lat_abs"
+      j=sub("\\).*", "", sub(".*\\(", "",i)) 
+      scatter[length(scatter)+1]=j
+    }
+    x = data.frame(scatter=unique(scatter)[2:length(unique(scatter))],
+                    log_ = grepl("log",rownames(summary(mo)$coef)[2:length(unique(scatter))]), stringsAsFactors = FALSE)
+    for (i in 1:length(fixed)){
+        jj =fixed[i]
+        variable=dat[, ..jj][[1]]
+        if(trans[i]=='log'){
+        scatter.smooth(resid(mo)~log(variable),xlab=paste('log(',jj,')',sep=''), col = 'grey');abline(h=0, lwd=1, lty = 2, col ='red')
+        }else if(trans[i]=='abs'){
+        scatter.smooth(resid(mo)~abs(variable),xlab=paste('abs(',jj,')',sep=''), col = 'grey');abline(h=0, lwd=1, lty = 2, col ='red')
+        }else{
+        scatter.smooth(resid(mo)~variable,xlab=jj,col = 'grey');abline(h=0, lwd=1, lty = 2, col ='red')
+      }
+     }
+    
+    if(length(categ)>0){
+      for(i in categ){
+         variable=dat[, ..i][[1]]
+          boxplot(resid(mo)~variable, medcol='grey', whiskcol='grey', staplecol='grey', boxcol='grey', outcol='grey');abline(h=0, lty=3, lwd=1, col = 'red')
+         }
+    }     
+          
+    if(temporal == TRUE){
+        acf(resid(mo), type="p", main=list("Temporal autocorrelation:\npartial series residual",cex=0.8))
+        }
+    if(spatial == TRUE){    
+    spdata=data.frame(resid=resid(mo), x=dat$Longitude, y=dat$Latitude)
+        spdata$col=ifelse(spdata$resid<0,rgb(83,95,124,100, maxColorValue = 255),ifelse(spdata$resid>0,rgb(253,184,19,100, maxColorValue = 255), 'red'))
+        #cex_=c(1,2,3,3.5,4)
+        cex_=c(1,1.5,2,2.5,3)
+        spdata$cex=as.character(cut(abs(spdata$resid), 5, labels=cex_))
+      plot(spdata$x, spdata$y,col=spdata$col, cex=as.numeric(spdata$cex), pch= 16, main=list('Spatial distribution of residuals', cex=0.8))
+        legend("topleft", pch=16, legend=c('>0','<0'), ,col=c(rgb(83,95,124,100, maxColorValue = 255),rgb(253,184,19,100, maxColorValue = 255)), cex=0.8)
+      plot(spdata$x[spdata$resid<0], spdata$y[spdata$resid<0],col=spdata$col[spdata$resid<0], cex=as.numeric(spdata$cex[spdata$resid<0]), pch= 16, main=list('Spatial distribution of residuals (<0)', cex=0.8))
+      plot(spdata$x[spdata$resid>=0], spdata$y[spdata$resid>=0],col=spdata$col[spdata$resid>=0], cex=as.numeric(spdata$cex[spdata$resid>=0]), pch= 16, main=list('Spatial distribution of residuals (>=0)', cex=0.8))
+        }
+   
+   mtext(paste(slot(mo,"call")[1],'(',slot(mo,"call")[2],sep=''), side = 3, line = -1, cex=0.7,outer = TRUE)
+  if(PNG==TRUE){dev.off()}
+  }
+```
+
+```{r prepare data, echo=FALSE, results="hide"}
+# load data    
+a = fread('../Data/blue_tit_data.csv') 
+    # a = read.csv(here::here("Data/blue_tit_data.csv"), stringsAsFactors = FALSE)
+    setnames(a, old = 'genetic_dad_ring_(WP_or_EP)', new = 'genetic_dad')
+
+    a = a[net_rearing_manipulation != ".", .(rear_nest_breed_ID, hatch_year, rear_nest_OH, chick_sex_molec, hatch_mom_Ring, genetic_dad, day_14_weight, day_14_tarsus_length, 
+        rear_nest_trt, net_rearing_manipulation, rear_Cs_at_start_of_rearing, d14_rear_nest_brood_size,  d0_hatch_nest_brood_size, rear_d0_rear_nest_brood_size,day14_measurer, rear_area)]
+
+# 203455 nest has one chicks with different year for when the eggs began to hatch in the nest in which the chick was reared. 1 = April 1., we assign the same year as is the year for the remaining chicks
+    a[rear_nest_breed_ID == '203455', hatch_year := 2003]
+
+# define NAs and column and variable definitions
+    a[hatch_mom_Ring %in% ".", hatch_mom_Ring := NA]
+    a[genetic_dad %in% ".", genetic_dad := NA]
+    a[, rear_Cs_at_start_of_rearing := as.numeric(rear_Cs_at_start_of_rearing)]
+    a[, net_rearing_manipulation := as.numeric(net_rearing_manipulation)]
+    a[, d14_rear_nest_brood_size := as.numeric(d14_rear_nest_brood_size)]
+    a[, d0_hatch_nest_brood_size := as.numeric(d0_hatch_nest_brood_size)]
+    a[, rear_d0_rear_nest_brood_size := as.numeric(rear_d0_rear_nest_brood_size)]
+    a[chick_sex_molec %in% ".", chick_sex_molec := "u"]
+    a[chick_sex_molec %in% "1", chick_sex_molec := "f"]
+    a[chick_sex_molec %in% "2", chick_sex_molec := "m"]
+    a[rear_nest_trt %in% "5", treatment := "increased"]
+    a[rear_nest_trt %in% "6", treatment := "reduced"]
+    a[rear_nest_trt %in% "7", treatment := "constant"]
+
+# compute  variables
+    a[, change_chick_n := rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size]
+    a[, rear_nest_OH_l :=  rear_nest_OH - min(rear_nest_OH), by = hatch_year] # day when first nest hatch in a given year is zero day of the season
+    a[, net_rearing_manipulation_factor := as.factor(net_rearing_manipulation)]
+    a[, prop_change_in_brood_size := net_rearing_manipulation/d0_hatch_nest_brood_size]
+    # sex ration at day 14
+        a[chick_sex_molec == 'm', sex := 1]
+        a[chick_sex_molec == 'f', sex := 0]
+        a[chick_sex_molec == 'u', sex := 0.5]
+        a[, brood_sex_ratio := sum(sex)/length(sex), by = rear_nest_breed_ID]
+    # body mass index
+        a[, body_mass_index := day_14_weight/day_14_tarsus_length^2]
+# dataset for chick mortality
+    mmo = a[complete.cases(a),.(change_chick_n, net_rearing_manipulation, d14_rear_nest_brood_size, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID)]
+    mou = unique(mmo)
+    nrow(mou)
+    length(unique(mmo$rear_nest_breed_ID))
+    mou[, net_rearing_manipulation_factor := as.factor(net_rearing_manipulation)]
+    
+    reml = TRUE
+    
+# dataset for paired analyses
+    p = fread('../Data/blue_tit_nest_pairs_IDs.csv') 
+    p = merge(a,p[,.(rear_nest_breed_ID, pair_ID)], all.x = TRUE)
+    p = p[!is.na(pair_ID)]
+
+```
+
+```{r}
+# additional data checking
+    # NAs
+        summary(a) 
+        summary(factor(a$chick_sex_molec))
+        length(a$hatch_mom_Ring[is.na(a$hatch_mom_Ring)])
+        length(a$genetic_dad[is.na(a$genetic_dad)])
+
+    # distributions
+        summary(factor(a$d14_rear_nest_brood_size)) 
+        summary(factor(a$net_rearing_manipulation)) 
+        summary(as.factor(a$rear_Cs_at_start_of_rearing))
+        summary(as.factor(a$d0_hatch_nest_brood_size))
+        summary(a$prop_change_in_brood_size)
+
+
+        ggplot(a, aes(x = net_rearing_manipulation)) + geom_histogram()
+        ggplot(a, aes(x = d14_rear_nest_brood_size-rear_Cs_at_start_of_rearing, fill = treatment)) + geom_histogram(position='dodge', bins = 12) + scale_x_continuous("dead chicks at day 14\n since start of experiment", breaks = seq(-10,1, by = 1), label = seq(-10,1, by = 1)) + xlab(c(-10, 1)) + theme_MB # in one case the brood size has increased by one chick
+
+        ggplot(a, aes(x = (d14_rear_nest_brood_size-rear_Cs_at_start_of_rearing)/rear_Cs_at_start_of_rearing, fill = treatment)) + geom_histogram(position='dodge', bins = 12) + scale_x_continuous("proportion of dead chicks at day 14\n since start of experiment",breaks = seq(-1,0.3, by = 0.1), label = seq(-1,0.3, by = 0.1)) + xlab(c(-1, 0.3)) + theme_MB
+
+        ggplot(a, aes(x = prop_change_in_brood_size, fill = treatment)) + geom_histogram() +xlim(c(-0.5,0.5))+ theme_MB
+
+    # cor among  predictors
+      # chick numbers at hatching and day 14    
+        aa = a[complete.cases(a),.(rear_Cs_at_start_of_rearing,d14_rear_nest_brood_size )]
+        cor(aa$rear_Cs_at_start_of_rearing, aa$d14_rear_nest_brood_size) # use 'd14_rear_nest_brood_size' in the models
+        ggplot(a, aes(x = rear_Cs_at_start_of_rearing, y = d14_rear_nest_brood_size)) + geom_point() +facet_wrap(.~rear_nest_trt) + geom_smooth(method = 'lm') 
+        ggplot(a, aes(x = rear_Cs_at_start_of_rearing, y = rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)) + geom_point() +facet_wrap(.~rear_nest_trt) + geom_smooth(method = 'lm')
+
+      # chick numbers at day 14 and net change in chick numbers
+        ggplot(a, aes(x = rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)) + geom_histogram()        
+        ggplot(a, aes(x = as.factor(rear_nest_trt), y = rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)) + geom_boxplot()                                            
+        ggplot(a, aes(x = as.factor(rear_nest_trt), y = (rear_Cs_at_start_of_rearing-d14_rear_nest_brood_size)/rear_Cs_at_start_of_rearing)) + geom_boxplot()  
+
+        cor(a$d14_rear_nest_brood_size, a$net_rearing_manipulation)
+        ggplot(a, aes( y = net_rearing_manipulation, x = d14_rear_nest_brood_size)) +
+            geom_point() + stat_smooth(method = 'lm') + facet_wrap(.~ treatment)
+
+
+        cor(a$brood_sex_ratio, a$net_rearing_manipulation)    
+        ggplot(a, aes( y = net_rearing_manipulation, x = brood_sex_ratio)) +
+            geom_point() + stat_smooth(method = 'lm') + facet_wrap(.~ treatment)
+
+      # chick mortality dataset
+      ggplot(mou, aes(x = rear_nest_OH_l)) + geom_histogram() +theme_MB
+      ggplot(mou, aes(x = net_rearing_manipulation, y = brood_sex_ratio)) + geom_point() + geom_smooth() +theme_MB
+      cor(mou$brood_sex_ratio, mou$net_rearing_manipulation)
+```

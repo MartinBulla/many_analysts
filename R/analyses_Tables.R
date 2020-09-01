@@ -4,6 +4,9 @@
     reml = TRUE # models fitted with REML (TRUE) or ML (FALSE)
     source(here::here('R/prepare_data.R'))
     
+    # install.packages("writexl")
+    library(writexl)
+    
 # MORTALITY - Table M 
     # prepare data
         # net_rearing_namipulation as continues
@@ -399,7 +402,7 @@
             o$deltaAIC[o$AIC!=""] = aic$deltaAIC[match(o$model[o$AIC!=""], aic$model)]
             o$prob[o$AIC!=""] = aic$prob[match(o$model[o$AIC!=""], aic$model)]
             o$ER[o$AIC!=""] = aic$ER[match(o$model[o$AIC!=""], aic$model)]
-            write.xlsx(o, paste0("Output/",sname,'.xlsx'), sheetName='Estimates&AIC')
+            writexl::write_xlsx(o, paste0("Output/",sname,'.xlsx'))
     # WEIGHT - Table WE 
         # INFO
             # scaled response and continuous predictors - standardized effects 
@@ -534,7 +537,7 @@
             o_mt1gs  = m_out(name = "g - (d) with sex interaction", model = mt1gs, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
             m_ass(name = 'Table WEg - weight-netxsex+d14xsex+sex-ratio - scaled', mo = mt1gs, dat = dtg, fixed = c('net_rearing_manipulation','d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
             
-            sname = 'Table_TE'
+            sname = 'Table_WE'
             o = data.table(rbind(o_mt0g,o_mt14g,o_mtig,o_mt1g,o_mt0gs,o_mtigs,o_mt1gs))
             aic = o[AIC!=""]
             aic[, AIC := as.numeric(AIC)]
@@ -545,7 +548,7 @@
             o$deltaAIC[o$AIC!=""] = aic$deltaAIC[match(o$model[o$AIC!=""], aic$model)]
             o$prob[o$AIC!=""] = aic$prob[match(o$model[o$AIC!=""], aic$model)]
             o$ER[o$AIC!=""] = aic$ER[match(o$model[o$AIC!=""], aic$model)]
-            write.xlsx(o, paste0("Output/",sname,'.xlsx'), sheetName='Estimates&AIC')
+            writexl::write_xlsx(o, paste0("Output/",sname,'.xlsx'))
     # BODY MASS INDEX - Table BE 
         # INFO
             # scaled response and continuous predictors - standardized effects 
@@ -680,7 +683,7 @@
             o_mt1gs  = m_out(name = "g - (d) with sex interaction", model = mt1gs, round_ = 5, nsim = 5000, aic = TRUE, N = 2550)
             m_ass(name = 'Table BEg - BMI-netxsex+d14xsex+sex-ratio - scaled', mo = mt1gs, dat = dtg, fixed = c('net_rearing_manipulation','d14_rear_nest_brood_size', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
             
-            sname = 'Table_TE'
+            sname = 'Table_BE'
             o = data.table(rbind(o_mt0g,o_mt14g, o_mtig,o_mt1g,o_mt0gs,o_mtigs,o_mt1gs))
             aic = o[AIC!=""]
             aic[, AIC := as.numeric(AIC)]
@@ -691,7 +694,7 @@
             o$deltaAIC[o$AIC!=""] = aic$deltaAIC[match(o$model[o$AIC!=""], aic$model)]
             o$prob[o$AIC!=""] = aic$prob[match(o$model[o$AIC!=""], aic$model)]
             o$ER[o$AIC!=""] = aic$ER[match(o$model[o$AIC!=""], aic$model)]
-            write.xlsx(o, paste0("Output/",sname,'.xlsx'), sheetName='Estimates&AIC')
+            writexl::write_xlsx(o, paste0("Output/",sname,'.xlsx'))
 
 # EXTENDED MATERIAL (TABLES) - controlling and using only experimental pairs            
     dtg = p[complete.cases(p),.(day_14_tarsus_length, day_14_weight, body_mass_index,net_rearing_manipulation, net_rearing_manipulation_factor, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID, hatch_mom_Ring, genetic_dad, pair_ID)] # limit data
