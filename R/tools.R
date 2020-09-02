@@ -14,7 +14,7 @@ using<-function(...) {
 
 
 # load/install packages
-  packages = c('anytime','arm','data.table', 'effects', 'foreach', 'ggplot2', 'ggthemes', 'glue',  'grid', 'here', 'htmlTable', 'lattice', 'lubridate', 'magrittr', 'multcomp', 'performance','plyr','raster','stringr','xlsx','zoo')
+  packages = c('anytime','arm','data.table', 'effects', 'foreach', 'ggplot2', 'ggthemes', 'glue',  'grid','gridExtra', 'here', 'htmlTable', 'lattice', 'lubridate', 'magrittr', 'multcomp', 'performance','plyr','raster','stringr','xlsx','zoo')
   sapply(packages, function(x) suppressPackageStartupMessages(using(x)) )
 
 # Customized ggplot theme
@@ -22,10 +22,11 @@ using<-function(...) {
               axis.line=element_blank(),
               #axis.line = element_line(colour="grey70", size=0.25),
               axis.title = element_text(size=7, colour="grey30"),
-              axis.title.y = element_text(vjust=1),
+              axis.title.y = element_text(vjust=3.5),
               axis.title.x = element_text(vjust=1),
               axis.text=element_text(size=6),#, vjust = 0.5, hjust=1),# margin=units(0.5,"mm")),
               axis.ticks.length=unit(0.5,"mm"),
+              axis.ticks = element_line(colour = "grey70"),
               #axis.ticks.margin,
               
               strip.text.x = element_text(size = 6, color="grey30",  margin=margin(1,1,1,1,"mm")), #grey50
