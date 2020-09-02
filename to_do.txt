@@ -1,2 +1,3 @@
-
-Tweak the links to our htmls
+Check why we link in the second paragraph of results once to Ts and other times to TEs tables within dropbox
+Tweak the code folding.
+Update the links to our htmls and to github and dropbox
