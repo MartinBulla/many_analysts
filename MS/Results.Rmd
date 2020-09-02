@@ -4,49 +4,59 @@ author: "Luke J. Eberhart-Phillips and Martin Bulla"
 date: "`r Sys.time()`"
 output: 
     html_document:
+        code_folding: show
 bibliography: many_analysts.xml
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, fig.align = "center")
 ```
-We found consistent treatment effects across all response variables that were independent of the model specifications (see Tables TE, WE and BE with all specified models and standardized  effect sizes [here](https://www.dropbox.com/sh/fmyp12uu45qruwo/AACkHcZAZvqYL0Z0Z1ZIShF1a?dl=0)). Tn the nests where most chicks were added, which also generally corresponds to the nests with the most chicks at the day 14 (the day of chick measurement), chicks died the most (estimate [95%CI]: 0.236 [0.172 - 0.302] dead chicks per added chick), had smaller tarsus (-0.063 [-0.074 to -0.051] mm per added chick), lower body mass (-0.182 [-0.213 to -0.153] g per added chick), and were the leanest, i.e. had the lowest body mass index (-0.00037 [-0.00045 to -0.00029] per added chick),  (Tables M, Ta, Tb, Wa, Wb, Ba, Wb, and Figures M, Ta, Wa, Ba). Analyses that controlled for on nest pairs generated similar results (see Tables [TEP, WEP, BEP](https://www.dropbox.com/sh/fmyp12uu45qruwo/AACkHcZAZvqYL0Z0Z1ZIShF1a?dl=0), and Figure EP below).
+We found consistent treatment effects across all response variables ([Figure R](#FigR)) that were independent of the model specifications (see [Tables TE, WE and BE](https://www.dropbox.com/sh/fmyp12uu45qruwo/AACkHcZAZvqYL0Z0Z1ZIShF1a?dl=0) with all specified models and standardized effect sizes). In the nests where most chicks were added, which also generally corresponds to the nests with the most chicks at the day 14 (the day of chick measurement), chicks died the most (estimate [95%CI]: 0.236 [0.172 - 0.302] dead chicks per added chick), had smaller tarsus (-0.063 [-0.074 to -0.051] mm per added chick), lower body mass (-0.182 [-0.213 to -0.153] g per added chick), and were the leanest, i.e. had the lowest body mass index (-0.00037 [-0.00045 to -0.00029] per added chick; ([Figure R](#FigR), Tables [M](#TableM), [T](#TableT), [W](#TableW), [B)](#TableB). The results were similar even when we controlled for nest pairs ([Figure EP](#FigEP)) and Tables [TEP, WEP, BEP](https://www.dropbox.com/sh/fmyp12uu45qruwo/AACkHcZAZvqYL0Z0Z1ZIShF1a?dl=0)).
 
-Treatment in interaction with sex did not improve the model fit (see Tables Tc, Wc, Bc below) and the simplest models (model "a" in [Tables T, W, B](https://www.dropbox.com/sh/fmyp12uu45qruwo/AACkHcZAZvqYL0Z0Z1ZIShF1a?dl=0)) performed the best of all (also exploratory) models, i.e. no other model had delta AIC smaller than 5 ( [predefined a priori](https://raw.githack.com/MartinBulla/many_analysts/master/MS/Protocol.html)), and even smaller than 2 (see [Tables TE, WE, BE](https://www.dropbox.com/sh/fmyp12uu45qruwo/AACkHcZAZvqYL0Z0Z1ZIShF1a?dl=0)).
+Treatment in interaction with sex did not improve the model fit (see Tables [Tc](#Tc), [Wc](#Wc), [Bc](#Bc) below) and the simplest models (model "a" in [Tables T, W, B](https://www.dropbox.com/sh/fmyp12uu45qruwo/AACkHcZAZvqYL0Z0Z1ZIShF1a?dl=0)) performed the best of all (also exploratory) models, i.e. no other model had delta AIC smaller than 5 ( [predefined a priori](https://raw.githack.com/MartinBulla/many_analysts/master/MS/Protocol.html)), and even not smaller than 2 (see [Tables TE, WE, BE](https://www.dropbox.com/sh/fmyp12uu45qruwo/AACkHcZAZvqYL0Z0Z1ZIShF1a?dl=0)).
 
-Note that males tend to have larger tarsi and are heavier (regardless of the treatment), but their body mass index is similar to the one of females (Figures T, W, B) - indicating that the body mass of each sex is proportional to their structural size and that the treatment does indeed affect only tarsus size or only body mass.
+Note that males tend to have larger tarsi and are heavier (regardless of the treatment), but their body mass index is similar to the one of females ([Figure R](#FigR)) - indicating that the body mass of each sex is proportional to their structural size and that the treatment does indeed affect only tarsus size or only body mass.
+
+***
 
 ```{r tools, echo=FALSE, results="hide"}
 
-using<-function(...) {
-    libs<-unlist(list(...))
-    req<-unlist(lapply(libs,require,character.only=TRUE))
-    need<-libs[req==FALSE]
-    if(length(need)>0){ 
-        install.packages(need)
-        lapply(need,require,character.only=TRUE)
-    }
-}
-
+reml = TRUE # models fitted with REML (TRUE) or ML (FALSE)
+nsim <- 5000 # number of simulations for predictions
 
 # load/install packages
-  packages = c('anytime','arm','data.table', 'effects', 'foreach', 'ggplot2', 'ggthemes', 'glue',  'grid', 'here', 'htmlTable', 'lattice', 'lubridate', 'magrittr', 'multcomp', 'performance','plyr','raster','stringr','zoo', 'gt', 'tidyverse', 'ggpubr')
+    using<-function(...) {
+        libs<-unlist(list(...))
+        req<-unlist(lapply(libs,require,character.only=TRUE))
+        need<-libs[req==FALSE]
+        if(length(need)>0){ 
+            install.packages(need)
+            lapply(need,require,character.only=TRUE)
+        }
+    }
+  packages = c('anytime','arm','data.table', 'effects', 'foreach', 'ggplot2', 'ggthemes', 'glue',  'grid', 'gridExtra', 'here', 'htmlTable', 'lattice', 'lubridate', 'magrittr', 'multcomp', 'performance','plyr','raster','stringr','zoo', 'gt', 'tidyverse', 'ggpubr')
   sapply(packages, function(x) suppressPackageStartupMessages(using(x)) )
 
+# colors
+    f_col = "#FCB42C" 
+    m_col = "#535F7C"
+    u_col = "#5eab2b"
+  
 # Customized ggplot theme
-    theme_MB = theme(
+    theme_MB = theme(  
               axis.line=element_blank(),
               #axis.line = element_line(colour="grey70", size=0.25),
               axis.title = element_text(size=7, colour="grey30"),
-              axis.title.y = element_text(vjust=1),
+              axis.title.y = element_text(vjust=3.5),
               axis.title.x = element_text(vjust=1),
               axis.text=element_text(size=6),#, vjust = 0.5, hjust=1),# margin=units(0.5,"mm")),
               axis.ticks.length=unit(0.5,"mm"),
+              axis.ticks = element_line(colour = "grey70"),
               #axis.ticks.margin,
-
+              
               strip.text.x = element_text(size = 6, color="grey30",  margin=margin(1,1,1,1,"mm")), #grey50
               strip.background = element_rect(fill="grey99",colour="grey70", size=0.25),
-                #strip.background = element_blank(),
+                #strip.background = element_blank(), 
                 #strip.text = element_blank(),
               panel.spacing = unit(0, "mm"),
               panel.background=element_blank(),
@@ -57,166 +67,150 @@ using<-function(...) {
               legend.title=element_text(size=7)
               )
 
-
-# model output function
-  m_out = function(name = "define", model = m, round_ = 3, nsim = 5000, aic = TRUE, save_sim = FALSE, N = NA){
-  bsim <- sim(model, n.sim=nsim)  
-    if(save_sim!=FALSE){save(bsim, file = paste0(save_sim, name,'.RData'))}
-   v = apply(bsim@fixef, 2, quantile, prob=c(0.5))
-   ci = apply(bsim@fixef, 2, quantile, prob=c(0.025,0.975)) 
-   oi=data.frame(model = name,type='fixed',effect=rownames(coef(summary(model))),estimate=v, lwr=ci[1,], upr=ci[2,])
-      rownames(oi) = NULL
-      oi$estimate_r=round(oi$estimate,round_)
-      oi$lwr_r=round(oi$lwr,round_)
-      oi$upr_r=round(oi$upr,round_)
-  oii=oi[c('model','type',"effect", "estimate_r","lwr_r",'upr_r')] 
-  
-   l=data.frame(summary(model)$varcor)
-   l = l[is.na(l$var2),]
-   l$var1 = ifelse(is.na(l$var1),"",l$var1)
-   l$pred = paste(l$grp,l$var1)
-
-   q050={}
-   q025={}
-   q975={}
-   pred={}
-   
-   # variance of random effects
-   for (ran in names(bsim@ranef)) {
-     ran_type = l$var1[l$grp == ran]
-     for(i in ran_type){
-      q050=c(q050,quantile(apply(bsim@ranef[[ran]][,,ran_type], 1, var), prob=c(0.5)))
-      q025=c(q025,quantile(apply(bsim@ranef[[ran]][,,ran_type], 1, var), prob=c(0.025)))
-      q975=c(q975,quantile(apply(bsim@ranef[[ran]][,,ran_type], 1, var), prob=c(0.975)))
-      pred= c(pred,paste(ran, i))
-      }
-     }
-   # residual variance
-   q050=c(q050,quantile(bsim@sigma^2, prob=c(0.5)))
-   q025=c(q025,quantile(bsim@sigma^2, prob=c(0.025)))
-   q975=c(q975,quantile(bsim@sigma^2, prob=c(0.975)))
-   pred= c(pred,'Residual')
-
-   ri=data.frame(model = name,type='random %',effect=pred, estimate_r=round(100*q050/sum(q050)), lwr_r=round(100*q025/sum(q025)), upr_r=round(100*q975/sum(q975)))
-     rx = ri[ri$effect == 'Residual',]
-     if(rx$lwr_r>rx$upr_r){ri$lwr_r[ri$effect == 'Residual'] = rx$upr_r; ri$upr_r[ri$effect == 'Residual'] = rx$lwr_r}
-     ri$estimate_r = paste0(ri$estimate_r,'%')
-     ri$lwr_r = paste0(ri$lwr_r,'%')
-     ri$upr_r = paste0(ri$upr_r,'%')
-  
-  x = rbind(oii,ri)
-    x$N = ""
-    x$N[1] = N
-    if (aic == TRUE){   
-        x$AIC = ""
-        x$AIC[1]=AIC(update(model,REML = FALSE))
-        x$delta = ""
-        x$prob = ""
-        x$ER = ""
-        }
-     x$R2_mar = ""
-     x$R2_con = ""
-     x$R2_mar [1]= r2_nakagawa(model)$R2_marginal
-     x$R2_con [1]= r2_nakagawa(model)$R2_conditional
-    return(x)
-  } 
-# model assumption function
-  m_ass = function(name = 'define', mo = m0, dat = d, fixed = NULL, categ = NULL, trans = NULL, spatial = TRUE, temporal = TRUE, PNG = TRUE, outdir = 'outdir'){
-   l=data.frame(summary(mo)$varcor)
-   l = l[is.na(l$var2),]
-   if(PNG == TRUE){
-    png(paste(outdir,name, ".png", sep=""), width=6,height=9,units="in",res=600)
-     }else{dev.new(width=6,height=9)}
-   
-   n = nrow(l)-1+length(fixed)+length(categ) + 4 + if(temporal==TRUE){1}else{0} + if(spatial==TRUE){1}else{0} 
-   par(mfrow=c(ceiling(n/3),3))
-   
-   scatter.smooth(fitted(mo),resid(mo),col='grey');abline(h=0, lty=2, col ='red')
-   scatter.smooth(fitted(mo),sqrt(abs(resid(mo))), col='grey')
-   qqnorm(resid(mo), main=list("Normal Q-Q Plot: residuals", cex=0.8),col='grey');qqline(resid(mo))
-   #unique(l$grp[l$grp!="Residual"])
-   for(i in unique(l$grp[l$grp!="Residual"])){
-    #i = "mean_year"
-    ll=ranef(mo)[names(ranef(mo))==i][[1]]
-    if(ncol(ll)==1){
-     qqnorm(ll[,1], main = paste(i,names(ll)[1]),col='grey');qqline(ll[,1], col ='red')
-     }else{
-      qqnorm(ll[,1], main = paste(i,names(ll)[1]),col='grey');qqline(ll[,1], col ='red')
-      qqnorm(ll[,2], main = paste(i,names(ll)[2]),col='grey');qqline(ll[,2], col ='red')
-     }
-    }
+# functions
+    get_legend<-function(myggplot){
+      tmp <- ggplot_gtable(ggplot_build(myggplot))
+      leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+      legend <- tmp$grobs[[leg]]
+      return(legend)
+    }   
     
-   # variables
-   scatter={} 
-   for (i in rownames(summary(mo)$coef)) {
-        #i = "lat_abs"
-      j=sub("\\).*", "", sub(".*\\(", "",i)) 
-      scatter[length(scatter)+1]=j
-    }
-    x = data.frame(scatter=unique(scatter)[2:length(unique(scatter))],
-                    log_ = grepl("log",rownames(summary(mo)$coef)[2:length(unique(scatter))]), stringsAsFactors = FALSE)
-    for (i in 1:length(fixed)){
-        jj =fixed[i]
-        variable=dat[, ..jj][[1]]
-        if(trans[i]=='log'){
-        scatter.smooth(resid(mo)~log(variable),xlab=paste('log(',jj,')',sep=''), col = 'grey');abline(h=0, lwd=1, lty = 2, col ='red')
-        }else if(trans[i]=='abs'){
-        scatter.smooth(resid(mo)~abs(variable),xlab=paste('abs(',jj,')',sep=''), col = 'grey');abline(h=0, lwd=1, lty = 2, col ='red')
-        }else{
-        scatter.smooth(resid(mo)~variable,xlab=jj,col = 'grey');abline(h=0, lwd=1, lty = 2, col ='red')
-      }
-     }
+  # model output function
+      m_out = function(name = "define", model = m, round_ = 3, nsim = 5000, aic = TRUE, save_sim = FALSE, N = NA){
+      bsim <- sim(model, n.sim=nsim)  
+        if(save_sim!=FALSE){save(bsim, file = paste0(save_sim, name,'.RData'))}
+       v = apply(bsim@fixef, 2, quantile, prob=c(0.5))
+       ci = apply(bsim@fixef, 2, quantile, prob=c(0.025,0.975)) 
+       oi=data.frame(model = name,type='fixed',effect=rownames(coef(summary(model))),estimate=v, lwr=ci[1,], upr=ci[2,])
+          rownames(oi) = NULL
+          oi$estimate_r=round(oi$estimate,round_)
+          oi$lwr_r=round(oi$lwr,round_)
+          oi$upr_r=round(oi$upr,round_)
+      oii=oi[c('model','type',"effect", "estimate_r","lwr_r",'upr_r')] 
+      
+       l=data.frame(summary(model)$varcor)
+       l = l[is.na(l$var2),]
+       l$var1 = ifelse(is.na(l$var1),"",l$var1)
+       l$pred = paste(l$grp,l$var1)
     
-    if(length(categ)>0){
-      for(i in categ){
-         variable=dat[, ..i][[1]]
-          boxplot(resid(mo)~variable, medcol='grey', whiskcol='grey', staplecol='grey', boxcol='grey', outcol='grey');abline(h=0, lty=3, lwd=1, col = 'red')
+       q050={}
+       q025={}
+       q975={}
+       pred={}
+       
+       # variance of random effects
+       for (ran in names(bsim@ranef)) {
+         ran_type = l$var1[l$grp == ran]
+         for(i in ran_type){
+          q050=c(q050,quantile(apply(bsim@ranef[[ran]][,,ran_type], 1, var), prob=c(0.5)))
+          q025=c(q025,quantile(apply(bsim@ranef[[ran]][,,ran_type], 1, var), prob=c(0.025)))
+          q975=c(q975,quantile(apply(bsim@ranef[[ran]][,,ran_type], 1, var), prob=c(0.975)))
+          pred= c(pred,paste(ran, i))
+          }
          }
-    }     
-          
-    if(temporal == TRUE){
-        acf(resid(mo), type="p", main=list("Temporal autocorrelation:\npartial series residual",cex=0.8))
+       # residual variance
+       q050=c(q050,quantile(bsim@sigma^2, prob=c(0.5)))
+       q025=c(q025,quantile(bsim@sigma^2, prob=c(0.025)))
+       q975=c(q975,quantile(bsim@sigma^2, prob=c(0.975)))
+       pred= c(pred,'Residual')
+    
+       ri=data.frame(model = name,type='random',effect=pred, estimate_r=round(100*q050/sum(q050)), lwr_r=round(100*q025/sum(q025)), upr_r=round(100*q975/sum(q975)))
+         rx = ri[ri$effect == 'Residual',]
+         if(rx$lwr_r>rx$upr_r){ri$lwr_r[ri$effect == 'Residual'] = rx$upr_r; ri$upr_r[ri$effect == 'Residual'] = rx$lwr_r}
+         ri$estimate_r = paste0(ri$estimate_r,'%')
+         ri$lwr_r = paste0(ri$lwr_r,'%')
+         ri$upr_r = paste0(ri$upr_r,'%')
+      
+      x = rbind(oii,ri)
+        x$N = ""
+        x$N[1] = N
+        if (aic == TRUE){   
+            x$AIC = ""
+            x$AIC[1]=AIC(update(model,REML = FALSE))
+            x$delta = ""
+            x$prob = ""
+            x$ER = ""
+            }
+         x$R2_mar = ""
+         x$R2_con = ""
+         x$R2_mar [1]= r2_nakagawa(model)$R2_marginal
+         x$R2_con [1]= r2_nakagawa(model)$R2_conditional
+        return(x)
+      } 
+      
+  # model assumption function
+      m_ass = function(name = 'define', mo = m0, dat = d, fixed = NULL, categ = NULL, trans = NULL, spatial = TRUE, temporal = TRUE, PNG = TRUE, outdir = 'outdir'){
+       l=data.frame(summary(mo)$varcor)
+       l = l[is.na(l$var2),]
+       if(PNG == TRUE){
+        png(paste(outdir,name, ".png", sep=""), width=6,height=9,units="in",res=600)
+         }else{dev.new(width=6,height=9)}
+       
+       n = nrow(l)-1+length(fixed)+length(categ) + 4 + if(temporal==TRUE){1}else{0} + if(spatial==TRUE){1}else{0} 
+       par(mfrow=c(ceiling(n/3),3))
+       
+       scatter.smooth(fitted(mo),resid(mo),col='grey');abline(h=0, lty=2, col ='red')
+       scatter.smooth(fitted(mo),sqrt(abs(resid(mo))), col='grey')
+       qqnorm(resid(mo), main=list("Normal Q-Q Plot: residuals", cex=0.8),col='grey');qqline(resid(mo))
+       #unique(l$grp[l$grp!="Residual"])
+       for(i in unique(l$grp[l$grp!="Residual"])){
+        #i = "mean_year"
+        ll=ranef(mo)[names(ranef(mo))==i][[1]]
+        if(ncol(ll)==1){
+         qqnorm(ll[,1], main = paste(i,names(ll)[1]),col='grey');qqline(ll[,1], col ='red')
+         }else{
+          qqnorm(ll[,1], main = paste(i,names(ll)[1]),col='grey');qqline(ll[,1], col ='red')
+          qqnorm(ll[,2], main = paste(i,names(ll)[2]),col='grey');qqline(ll[,2], col ='red')
+         }
         }
-    if(spatial == TRUE){    
-    spdata=data.frame(resid=resid(mo), x=dat$Longitude, y=dat$Latitude)
-        spdata$col=ifelse(spdata$resid<0,rgb(83,95,124,100, maxColorValue = 255),ifelse(spdata$resid>0,rgb(253,184,19,100, maxColorValue = 255), 'red'))
-        #cex_=c(1,2,3,3.5,4)
-        cex_=c(1,1.5,2,2.5,3)
-        spdata$cex=as.character(cut(abs(spdata$resid), 5, labels=cex_))
-      plot(spdata$x, spdata$y,col=spdata$col, cex=as.numeric(spdata$cex), pch= 16, main=list('Spatial distribution of residuals', cex=0.8))
-        legend("topleft", pch=16, legend=c('>0','<0'), ,col=c(rgb(83,95,124,100, maxColorValue = 255),rgb(253,184,19,100, maxColorValue = 255)), cex=0.8)
-      plot(spdata$x[spdata$resid<0], spdata$y[spdata$resid<0],col=spdata$col[spdata$resid<0], cex=as.numeric(spdata$cex[spdata$resid<0]), pch= 16, main=list('Spatial distribution of residuals (<0)', cex=0.8))
-      plot(spdata$x[spdata$resid>=0], spdata$y[spdata$resid>=0],col=spdata$col[spdata$resid>=0], cex=as.numeric(spdata$cex[spdata$resid>=0]), pch= 16, main=list('Spatial distribution of residuals (>=0)', cex=0.8))
+        
+       # variables
+       scatter={} 
+       for (i in rownames(summary(mo)$coef)) {
+            #i = "lat_abs"
+          j=sub("\\).*", "", sub(".*\\(", "",i)) 
+          scatter[length(scatter)+1]=j
         }
-   
-   mtext(paste(slot(mo,"call")[1],'(',slot(mo,"call")[2],sep=''), side = 3, line = -1, cex=0.7,outer = TRUE)
-  if(PNG==TRUE){dev.off()}
-  }
+        x = data.frame(scatter=unique(scatter)[2:length(unique(scatter))],
+                        log_ = grepl("log",rownames(summary(mo)$coef)[2:length(unique(scatter))]), stringsAsFactors = FALSE)
+        for (i in 1:length(fixed)){
+            jj =fixed[i]
+            variable=dat[, ..jj][[1]]
+            if(trans[i]=='log'){
+            scatter.smooth(resid(mo)~log(variable),xlab=paste('log(',jj,')',sep=''), col = 'grey');abline(h=0, lwd=1, lty = 2, col ='red')
+            }else if(trans[i]=='abs'){
+            scatter.smooth(resid(mo)~abs(variable),xlab=paste('abs(',jj,')',sep=''), col = 'grey');abline(h=0, lwd=1, lty = 2, col ='red')
+            }else{
+            scatter.smooth(resid(mo)~variable,xlab=jj,col = 'grey');abline(h=0, lwd=1, lty = 2, col ='red')
+          }
+         }
+        
+        if(length(categ)>0){
+          for(i in categ){
+             variable=dat[, ..i][[1]]
+              boxplot(resid(mo)~variable, medcol='grey', whiskcol='grey', staplecol='grey', boxcol='grey', outcol='grey');abline(h=0, lty=3, lwd=1, col = 'red')
+             }
+        }     
+              
+        if(temporal == TRUE){
+            acf(resid(mo), type="p", main=list("Temporal autocorrelation:\npartial series residual",cex=0.8))
+            }
+        if(spatial == TRUE){    
+        spdata=data.frame(resid=resid(mo), x=dat$Longitude, y=dat$Latitude)
+            spdata$col=ifelse(spdata$resid<0,rgb(83,95,124,100, maxColorValue = 255),ifelse(spdata$resid>0,rgb(253,184,19,100, maxColorValue = 255), 'red'))
+            #cex_=c(1,2,3,3.5,4)
+            cex_=c(1,1.5,2,2.5,3)
+            spdata$cex=as.character(cut(abs(spdata$resid), 5, labels=cex_))
+          plot(spdata$x, spdata$y,col=spdata$col, cex=as.numeric(spdata$cex), pch= 16, main=list('Spatial distribution of residuals', cex=0.8))
+            legend("topleft", pch=16, legend=c('>0','<0'), ,col=c(rgb(83,95,124,100, maxColorValue = 255),rgb(253,184,19,100, maxColorValue = 255)), cex=0.8)
+          plot(spdata$x[spdata$resid<0], spdata$y[spdata$resid<0],col=spdata$col[spdata$resid<0], cex=as.numeric(spdata$cex[spdata$resid<0]), pch= 16, main=list('Spatial distribution of residuals (<0)', cex=0.8))
+          plot(spdata$x[spdata$resid>=0], spdata$y[spdata$resid>=0],col=spdata$col[spdata$resid>=0], cex=as.numeric(spdata$cex[spdata$resid>=0]), pch= 16, main=list('Spatial distribution of residuals (>=0)', cex=0.8))
+            }
+       
+       mtext(paste(slot(mo,"call")[1],'(',slot(mo,"call")[2],sep=''), side = 3, line = -1, cex=0.7,outer = TRUE)
+      if(PNG==TRUE){dev.off()}
+      }
 ```
-
-```{r, echo=FALSE}
-# define the plotting theme to be used in subsequent ggplots
-luke_theme <- 
-  theme_bw() +
-  theme(
-    text = element_text(family = "Franklin Gothic Book"),
-    legend.title = element_text(size = 10),
-    legend.text = element_text(size = 8),
-    axis.title.x = element_text(size = 10),
-    axis.text.x  = element_text(size = 8), 
-    axis.title.y = element_text(size = 10),
-    axis.text.y = element_text(size = 8),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    axis.ticks = element_line(size = 0.5, colour = "grey40"),
-    axis.ticks.length = unit(0.2, "cm"),
-    panel.border = element_rect(linetype = "solid", colour = "grey")
-  )
-
-# set the ggplotting theme
-theme_set(luke_theme)
-```
-
 ```{r prepare data, echo=FALSE, results="hide"}
 # load data    
 a = fread('../Data/blue_tit_data.csv') 
@@ -270,14 +264,9 @@ a = fread('../Data/blue_tit_data.csv')
     p = merge(a,p[,.(rear_nest_breed_ID, pair_ID)], all.x = TRUE)
     p = p[!is.na(pair_ID)]
 
-```
-
-```{r, echo=FALSE, results="hide"}
-BT_data <- read.csv(file = "../Data/blue_tit_data.csv", stringsAsFactors = FALSE)
-```
-
-```{r, echo=FALSE, results="hide"}
-BT_data_tidy <-
+# dataset for paired plots
+    BT_data <- read.csv(file = "../Data/blue_tit_data.csv", stringsAsFactors = FALSE)
+   BT_data_tidy <-
   BT_data %>% 
   # select variables of interest
   dplyr::select(chick_ring_number, hatch_year, hatch_nest_breed_ID, rear_nest_breed_ID, rear_area, hatch_mom_Ring, 
@@ -363,30 +352,230 @@ morphometric_summaries <-
                               mean_mass, median_mass, sd_mass, se_mass, 
                               mean_BMI, median_BMI, sd_BMI, se_BMI,
                               change_chick_n)) %>% 
-  na.omit
+  na.omit 
+```
+```{r Fig R, echo=FALSE, fig.width = 7*0.393701, fig.height = 12*0.393701}
+# limit data to available cases
+      dtg = a[complete.cases(a),.(day_14_tarsus_length, day_14_weight, body_mass_index,  net_rearing_manipulation, net_rearing_manipulation_factor, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID, hatch_mom_Ring, genetic_dad)]
+# predictions 
+        # mortality
+            m = lmer(change_chick_n ~ net_rearing_manipulation  +       
+                      brood_sex_ratio +     
+                      (1|day14_measurer) + 
+                      (1|rear_area) +      
+                      (1|rear_nest_OH_l) + (1|hatch_year),       
+                      data = mou, REML = reml        
+                 )   
+            bsim <- sim(m, n.sim=nsim)  
+                
+            # coefficients
+                v = apply(bsim@fixef, 2, quantile, prob=c(0.5))
+                ci = apply(bsim@fixef, 2, quantile, prob=c(0.025, 0.975))
+
+            # values to predict for
+                newD=data.frame(net_rearing_manipulation = seq(min(mou$net_rearing_manipulation), max(mou$net_rearing_manipulation), length.out = 300), chick_sex_molec = c('m','f','u'), brood_sex_ratio = mean(mou$brood_sex_ratio))
+
+            # exactly the model which was used has to be specified here 
+                X <- model.matrix(~ net_rearing_manipulation +  
+                        brood_sex_ratio ,data=newD)   
+                            
+            # calculate predicted values and creditability intervals
+                newD$pred <-(X%*%v) 
+                predmatrix <- matrix(nrow=nrow(newD), ncol=nsim)
+                for(i in 1:nsim) predmatrix[,i] <- (X%*%bsim@fixef[i,])
+                    predmatrix[predmatrix < 0] <- 0
+                    newD$lwr <- apply(predmatrix, 1, quantile, prob=0.025)
+                    newD$upr <- apply(predmatrix, 1, quantile, prob=0.975)
+                    newD$pred <- apply(predmatrix, 1, quantile, prob=0.5)
+            pm=newD   
+        
+        # tarsus 
+            m=  lmer(day_14_tarsus_length ~ 
+                    net_rearing_manipulation +  
+                    chick_sex_molec + 
+                    brood_sex_ratio +
+                    (1|day14_measurer) + (1|rear_area) + 
+                    (1|rear_nest_OH_l) + (1|hatch_year)  +
+                    (1|rear_nest_breed_ID) +
+                    (1|hatch_mom_Ring) + (1|genetic_dad),
+                    data = dtg, REML = reml
+                    )
+
+            bsim <- sim(m, n.sim=nsim)  
+                
+            # coefficients
+                v = apply(bsim@fixef, 2, quantile, prob=c(0.5))
+                ci = apply(bsim@fixef, 2, quantile, prob=c(0.025, 0.975))
+
+            # values to predict for
+                newD=data.frame(net_rearing_manipulation = seq(min(dtg$net_rearing_manipulation), max(dtg$net_rearing_manipulation), length.out = 300), chick_sex_molec = c('m','f','u'), brood_sex_ratio = mean(dtg$brood_sex_ratio))
+
+            # exactly the model which was used has to be specified here 
+                X <- model.matrix(~ net_rearing_manipulation +  
+                        chick_sex_molec + 
+                        brood_sex_ratio ,data=newD)   
+                            
+            # calculate predicted values and creditability intervals
+                newD$pred <-(X%*%v) 
+                predmatrix <- matrix(nrow=nrow(newD), ncol=nsim)
+                for(i in 1:nsim) predmatrix[,i] <- (X%*%bsim@fixef[i,])
+                    predmatrix[predmatrix < 0] <- 0
+                    newD$lwr <- apply(predmatrix, 1, quantile, prob=0.025)
+                    newD$upr <- apply(predmatrix, 1, quantile, prob=0.975)
+                    newD$pred <- apply(predmatrix, 1, quantile, prob=0.5)
+            pt=newD 
+            pt$chick_sex_molec = ifelse(pt$chick_sex_molec == 'u', "unknown", ifelse(pt$chick_sex_molec =='f', 'female', 'male'))   
+        # weight
+            m=  lmer(day_14_weight ~ 
+                    net_rearing_manipulation +  
+                    chick_sex_molec + 
+                    brood_sex_ratio +
+                    (1|day14_measurer) + (1|rear_area) + 
+                    (1|rear_nest_OH_l) + (1|hatch_year)  +
+                    (1|rear_nest_breed_ID) +
+                    (1|hatch_mom_Ring) + (1|genetic_dad),
+                    data = dtg, REML = reml
+                    )
+
+            bsim <- sim(m, n.sim=nsim)  
+                
+            # coefficients
+                v = apply(bsim@fixef, 2, quantile, prob=c(0.5))
+                ci = apply(bsim@fixef, 2, quantile, prob=c(0.025, 0.975))
+
+            # values to predict for
+                newD=data.frame(net_rearing_manipulation = seq(min(dtg$net_rearing_manipulation), max(dtg$net_rearing_manipulation), length.out = 300), chick_sex_molec = c('m','f','u'), brood_sex_ratio = mean(dtg$brood_sex_ratio))
+
+            # exactly the model which was used has to be specified here 
+                X <- model.matrix(~ net_rearing_manipulation +  
+                        chick_sex_molec + 
+                        brood_sex_ratio ,data=newD)   
+                            
+            # calculate predicted values and creditability intervals
+                newD$pred <-(X%*%v) 
+                predmatrix <- matrix(nrow=nrow(newD), ncol=nsim)
+                for(i in 1:nsim) predmatrix[,i] <- (X%*%bsim@fixef[i,])
+                    predmatrix[predmatrix < 0] <- 0
+                    newD$lwr <- apply(predmatrix, 1, quantile, prob=0.025)
+                    newD$upr <- apply(predmatrix, 1, quantile, prob=0.975)
+                    newD$pred <- apply(predmatrix, 1, quantile, prob=0.5)
+            pw=newD   
+            pw$chick_sex_molec = ifelse(pw$chick_sex_molec == 'u', "unknown", ifelse(pw$chick_sex_molec =='f', 'female', 'male'))   
+        # BMI
+            m=  lmer(body_mass_index ~ 
+                    net_rearing_manipulation +  
+                    chick_sex_molec + 
+                    brood_sex_ratio +
+                    (1|day14_measurer) + (1|rear_area) + 
+                    (1|rear_nest_OH_l) + (1|hatch_year)  +
+                    (1|rear_nest_breed_ID) +
+                    (1|hatch_mom_Ring) + (1|genetic_dad),
+                    data = dtg, REML = reml
+                    )
+
+            nsim <- 5000
+            bsim <- sim(m, n.sim=nsim)  
+                
+            # coefficients
+                v = apply(bsim@fixef, 2, quantile, prob=c(0.5))
+                ci = apply(bsim@fixef, 2, quantile, prob=c(0.025, 0.975))
+
+            # values to predict for
+                newD=data.frame(net_rearing_manipulation = seq(min(dtg$net_rearing_manipulation), max(dtg$net_rearing_manipulation), length.out = 300), chick_sex_molec = c('m','f','u'), brood_sex_ratio = mean(dtg$brood_sex_ratio))
+
+            # exactly the model which was used has to be specified here 
+                X <- model.matrix(~ net_rearing_manipulation +  
+                        chick_sex_molec + 
+                        brood_sex_ratio ,data=newD)   
+                            
+            # calculate predicted values and creditability intervals
+                newD$pred <-(X%*%v) 
+                predmatrix <- matrix(nrow=nrow(newD), ncol=nsim)
+                for(i in 1:nsim) predmatrix[,i] <- (X%*%bsim@fixef[i,])
+                    predmatrix[predmatrix < 0] <- 0
+                    newD$lwr <- apply(predmatrix, 1, quantile, prob=0.025)
+                    newD$upr <- apply(predmatrix, 1, quantile, prob=0.975)
+                    newD$pred <- apply(predmatrix, 1, quantile, prob=0.5)
+            pb=newD    
+            pb$chick_sex_molec = ifelse(pb$chick_sex_molec == 'u', "unknown", ifelse(pb$chick_sex_molec =='f', 'female', 'male'))   
+    # prepare plots       
+        ggm = ggplot(pm, aes(x = net_rearing_manipulation, y = pred))  +
+            geom_ribbon(aes(ymin=lwr, ymax=upr, x=net_rearing_manipulation), alpha = 0.1, show.legend = NA)+ 
+            geom_line() +
+            labs(x = 'Number of taken/added chicks', y = 'Dead chicks', tag = '(a)')  +
+            theme_bw() + theme_MB + 
+            theme(  legend.position="none",
+                    axis.title.x=element_blank(),
+                    axis.text.x=element_blank(),
+                    axis.ticks.x=element_blank(),
+                     plot.tag.position = c(0.95, 0.95),
+                    plot.tag = element_text(size = 7.5))
+        
+        ggt = ggplot(pt, aes(x = net_rearing_manipulation, y = pred))  +
+            geom_ribbon(aes(ymin=lwr, ymax=upr, x=net_rearing_manipulation, fill = chick_sex_molec), alpha = 0.2, show.legend = NA)+ 
+            geom_line(aes(col =chick_sex_molec)) +
+            labs(x = 'Number of taken/added chicks', y = 'Tarsus length [mm]', tag = '(b)', fill = 'Chick sex', col = 'Chick sex')+
+            scale_fill_manual(labels = c("female", "male", 'unknown'), values = c(f_col, m_col, u_col))+
+            scale_color_manual(labels = c("female", "male", 'unknown'), values = c(f_col, m_col, u_col))+
+            theme_bw() + theme_MB + 
+            theme(  axis.title.x=element_blank(),
+                    axis.text.x=element_blank(),
+                    axis.ticks.x=element_blank(),
+                    plot.tag.position = c(0.95, 0.95),
+                    plot.tag = element_text(size = 7.5))
+        legend = get_legend(ggt)
+        ggt = ggt + theme(legend.position="none")   
+
+        ggw = ggplot(pw, aes(x = net_rearing_manipulation, y = pred))  +
+            geom_ribbon(aes(ymin=lwr, ymax=upr, x=net_rearing_manipulation, fill = chick_sex_molec), alpha = 0.2, show.legend = NA)+ 
+            geom_line(aes(col =chick_sex_molec)) +
+            labs(x = 'Number of taken/added chicks', y = 'Weight [g]', tag = '(c)')  +
+            scale_fill_manual(labels = c("female", "male", 'unknown'), values = c(f_col, m_col, u_col))+
+            scale_color_manual(labels = c("female", "male", 'unknown'), values = c(f_col, m_col, u_col))+
+            theme_bw() + theme_MB + 
+            theme(  legend.position="none",
+                    axis.title.x=element_blank(),
+                    axis.text.x=element_blank(),
+                    axis.ticks.x=element_blank(),
+                     plot.tag.position = c(0.95, 0.95),
+                    plot.tag = element_text(size = 7.5))
+        
+        ggb = ggplot(pb, aes(x = net_rearing_manipulation, y = pred))  +
+            geom_ribbon(aes(ymin=lwr, ymax=upr, x=net_rearing_manipulation, fill = chick_sex_molec), alpha = 0.2, show.legend = NA)+ 
+            geom_line(aes(col =chick_sex_molec)) + 
+            labs(x = 'Number of taken/added chicks', y = 'Body mass index', tag = '(d)') +
+            scale_fill_manual(labels = c("female", "male", 'unknown'), values = c(f_col, m_col, u_col))+
+            scale_color_manual(labels = c("female", "male", 'unknown'), values = c(f_col, m_col, u_col))+
+            theme_bw() + theme_MB + 
+            theme(  legend.position="none",
+                    #axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0)
+                    plot.tag.position = c(0.95, 0.95),
+                    plot.tag = element_text(size = 7.5))
+    # Figure R - COMBINED MTWB   
+        g0 <- ggplotGrob(ggm)
+        g1 <- ggplotGrob(ggt)
+        g2 <- ggplotGrob(ggw)
+        g3 <- ggplotGrob(ggb)
+        
+        grid.arrange(rbind(g0,g1,g2,g3, size = "first"), legend, ncol = 2, padding = 0, widths =c(3.7, 1.25)) 
 ```
 
-```{r, results="hide", cache=TRUE, echo=FALSE}
+#### Figure R | Chick mortality and size according to net change in brood size {#FigR}
+Change in chick number between day 0 and day 14 of the experiment (a), tarsus length (b), body mass (c) and body mass index (d) at day 14 of the experiment given the experimental change in chick numbers within given nest (note that 0 indicates no change, i.e. control nests). Lines with shaded polygons indicate model predictions with 95%CI based on the joint posterior distribution of 5,000 simulated values generated by the ‘sim’ function in R (Gelman and Su 2018) from the model outputs (Tables M, Ta, Wa, Ba), while keeping the other predictors constant. Color in b-d indicates molecular sex of the chick (yellow = female, blue = male and green = unknown).
+
+```{r prepare for Table M, echo=FALSE, results="hide", cache=TRUE}
 m = lmer(change_chick_n ~ net_rearing_manipulation  +       
-              brood_sex_ratio +     
-              (1|day14_measurer) + 
-              (1|rear_area) +      
-              (1|rear_nest_OH_l) + (1|hatch_year),       
-              data = mou, REML = reml        
-         )   
-```
-
-```{r, echo=FALSE, results="hide", cache=TRUE}
+                      brood_sex_ratio +     
+                      (1|day14_measurer) + 
+                      (1|rear_area) +      
+                      (1|rear_nest_OH_l) + (1|hatch_year),       
+                      data = mou, REML = reml        
+                 )   
 o_m = m_out(name = "mortality", model = m, round_ = 3, nsim = 5000, aic = TRUE, N = nrow(mou))
-```
-
-#### Figure M: Response of change in chick number between day 0 and day 14 to net change in brood size and sex ratio
-```{r table M, echo=FALSE}
-plot(allEffects(m))
 o_m_source_note = paste("N = ", o_m$N[1], "nests, AIC = ", round(as.numeric(o_m$AIC[1], 4), 2), ", Marginal R-squared = ", round(as.numeric(o_m$R2_mar[1], 4), 2), ", Conditional R-squared = ", round(as.numeric(o_m$R2_con[1], 4), 2))
 ```
-
-#### Table M: effect sizes for chick mortality (*Model M*)
+***
+#### Table M | Effect sizes for chick mortality (*Model M*) {#TableM}
 ```{r, echo=FALSE}
 o_m %>% 
   mutate(CI_String = ifelse(!is.na(lwr_r),
@@ -396,7 +585,7 @@ o_m %>%
                      NA)) %>% 
   dplyr::select(type, effect, estimate_r, CI_String) %>% 
   gt(groupname_col = "type") %>% 
-  cols_label(effect = "",
+  cols_label(effect = "Effect type",
              estimate_r = "Parameter estimate",
              CI_String = "95% credible interval") %>% 
   cols_align(align = "left",
@@ -437,73 +626,12 @@ mt0g =  lmer(day_14_tarsus_length ~
 plot(allEffects(mt0g))
 ```
 
-##### Figure Ta: Predicted relationship between day 14 tarsus length and net change in brood size according to chick sex (prediction and its 95% CI)
-```{r, echo=FALSE, cache=TRUE}
-m=  lmer(day_14_tarsus_length ~ 
-                net_rearing_manipulation +  
-                chick_sex_molec + 
-                brood_sex_ratio +
-                (1|day14_measurer) + (1|rear_area) + 
-                (1|rear_nest_OH_l) + (1|hatch_year)  +
-                (1|rear_nest_breed_ID) +
-                (1|hatch_mom_Ring) + (1|genetic_dad),
-                data = dtg, REML = reml
-                )
-
-        nsim <- 5000
-        bsim <- sim(m, n.sim=nsim)  
-            
-        # coefficients
-            v = apply(bsim@fixef, 2, quantile, prob=c(0.5))
-            ci = apply(bsim@fixef, 2, quantile, prob=c(0.025, 0.975))
-
-        # values to predict for
-            newD=data.frame(net_rearing_manipulation = seq(min(dtg$net_rearing_manipulation), max(dtg$net_rearing_manipulation), length.out = 300), chick_sex_molec = c('m','f','u'), brood_sex_ratio = mean(dtg$brood_sex_ratio))
-
-        # exactly the model which was used has to be specified here 
-            X <- model.matrix(~ net_rearing_manipulation +  
-                    chick_sex_molec + 
-                    brood_sex_ratio ,data=newD)   
-                        
-        # calculate predicted values and creditability intervals
-            newD$pred <-(X%*%v) 
-            predmatrix <- matrix(nrow=nrow(newD), ncol=nsim)
-            for(i in 1:nsim) predmatrix[,i] <- (X%*%bsim@fixef[i,])
-                predmatrix[predmatrix < 0] <- 0
-                newD$lwr <- apply(predmatrix, 1, quantile, prob=0.025)
-                newD$upr <- apply(predmatrix, 1, quantile, prob=0.975)
-                newD$pred <- apply(predmatrix, 1, quantile, prob=0.5)
-        pt=newD    
-        #ptm = pt[pt$chick_sex_molec == 'm',]
-        #ptf = pt[pt$chick_sex_molec == 'f',]
-        #ptu = pt[pt$chick_sex_molec == 'u',]
-
-        ggplot(pt, aes(x = net_rearing_manipulation, y = pred))  +
-            geom_ribbon(aes(ymin=lwr, ymax=upr, x=net_rearing_manipulation, fill = chick_sex_molec), alpha = 0.2, show.legend = NA)+ 
-            geom_line(aes(col =chick_sex_molec)) + 
-            labs(x = 'Number of taken/added chicks', y = 'Tarsus length [mm]') +
-  theme_bw() +
-  theme(
-    text = element_text(family = "Franklin Gothic Book"),
-    legend.title = element_text(size = 10),
-    legend.text = element_text(size = 8),
-    axis.title.x = element_text(size = 10),
-    axis.text.x  = element_text(size = 8), 
-    axis.title.y = element_text(size = 10),
-    axis.text.y = element_text(size = 8),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    axis.ticks = element_line(size = 0.5, colour = "grey40"),
-    axis.ticks.length = unit(0.2, "cm"),
-    panel.border = element_rect(linetype = "solid", colour = "grey")
-  )
-
-```
 ```{r, echo=FALSE, results="hide", cache=TRUE}
 o_mt0g = m_out(name = "a - net chick", model = mt0g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
 ```
 
-##### Table Ta: effect sizes for chick tarsus model
+#### Table T | Effect sizes for chick tarsus models {#TableT}
+##### a {#Ta}
 ```{r, echo=FALSE}
 o_mt0g_source_note = paste("N = ", o_mt0g$N[1], "nests, AIC = ", round(as.numeric(o_mt0g$AIC[1], 4), 2), ", Marginal R-squared = ", round(as.numeric(o_mt0g$R2_mar[1], 4), 2), ", Conditional R-squared = ", round(as.numeric(o_mt0g$R2_con[1], 4), 2))
 
@@ -515,7 +643,7 @@ o_mt0g %>%
                      NA)) %>% 
   dplyr::select(type, effect, estimate_r, CI_String) %>% 
   gt(groupname_col = "type") %>% 
-  cols_label(effect = "",
+  cols_label(effect = "Effect type",
              estimate_r = "Parameter estimate",
              CI_String = "95% credible interval") %>% 
   cols_align(align = "left",
@@ -532,7 +660,6 @@ o_mt0g %>%
   # tab_source_note(source_note = o_mt0g_source_note)
 ```
 
-***
 
 ```{r, results="hide", cache=TRUE, echo=FALSE}
 mt14g =  lmer(day_14_tarsus_length ~ 
@@ -558,7 +685,7 @@ plot(allEffects(mt14g))
 o_mt14g  = m_out(name = "b - day 14 chick #", model = mt14g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
 ```
 
-##### Table Tb: effect sizes for chick tarsus model
+##### b {#Tb}
 ```{r, echo=FALSE}
 o_mt14g_source_note = paste("N = ", o_mt14g$N[1], "nests, AIC = ", round(as.numeric(o_mt14g$AIC[1], 4), 2), ", Marginal R-squared = ", round(as.numeric(o_mt14g$R2_mar[1], 4), 2), ", Conditional R-squared = ", round(as.numeric(o_mt14g$R2_con[1], 4), 2))
 
@@ -570,7 +697,7 @@ o_mt14g %>%
                      NA)) %>% 
   dplyr::select(type, effect, estimate_r, CI_String) %>% 
   gt(groupname_col = "type") %>% 
-  cols_label(effect = "",
+  cols_label(effect = "Effect type",
              estimate_r = "Parameter estimate",
              CI_String = "95% credible interval") %>% 
   cols_align(align = "left",
@@ -582,12 +709,11 @@ o_mt14g %>%
               row_group.padding = 4,
               summary_row.padding = 2,
               column_labels.font.size = 14,
+              column_labels.hidden = TRUE,
               row_group.font.size = 12,
               table.width = pct(80)) #%>% 
   # tab_source_note(source_note = o_mt14g_source_note)
 ```
-
-***
 
 ```{r, results="hide", cache=TRUE, echo=FALSE}
 mt0gs =  lmer(day_14_tarsus_length ~ 
@@ -608,7 +734,7 @@ plot(allEffects(mt0gs))
 o_mt0gs = m_out(name = "c - (a) with sex interaction", model = mt0gs, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
 ```
 
-##### Table Tc: effect sizes for chick tarsus model
+##### c {#Tc}
 ```{r, echo=FALSE}
 o_mt0gs_source_note = paste("N = ", o_mt0gs$N[1], "nests, AIC = ", round(as.numeric(o_mt0gs$AIC[1], 4), 2), ", Marginal R-squared = ", round(as.numeric(o_mt0gs$R2_mar[1], 4), 2), ", Conditional R-squared = ", round(as.numeric(o_mt0gs$R2_con[1], 4), 2))
 
@@ -620,7 +746,7 @@ o_mt0gs %>%
                      NA)) %>% 
   dplyr::select(type, effect, estimate_r, CI_String) %>% 
   gt(groupname_col = "type") %>% 
-  cols_label(effect = "",
+  cols_label(effect = "Effect type",
              estimate_r = "Parameter estimate",
              CI_String = "95% credible interval") %>% 
   cols_align(align = "left",
@@ -632,6 +758,7 @@ o_mt0gs %>%
               row_group.padding = 4,
               summary_row.padding = 2,
               column_labels.font.size = 14,
+              column_labels.hidden = TRUE,
               row_group.font.size = 12,
               table.width = pct(80)) #%>% 
   # tab_source_note(source_note = o_mt0gs_source_note)
@@ -689,73 +816,13 @@ summary(glht(mw0g))
 plot(allEffects(mw0g))
 ```
 
-##### Figure W: Predicted relationship between day 14 weight and net change in brood size according to chick sex (prediction and its 95% CI)
-```{r, echo=FALSE, cache=TRUE}
- m=  lmer(day_14_weight ~ 
-                net_rearing_manipulation +  
-                chick_sex_molec + 
-                brood_sex_ratio +
-                (1|day14_measurer) + (1|rear_area) + 
-                (1|rear_nest_OH_l) + (1|hatch_year)  +
-                (1|rear_nest_breed_ID) +
-                (1|hatch_mom_Ring) + (1|genetic_dad),
-                data = dwg, REML = reml
-                )
 
-        nsim <- 5000
-        bsim <- sim(m, n.sim=nsim)  
-            
-        # coefficients
-            v = apply(bsim@fixef, 2, quantile, prob=c(0.5))
-            ci = apply(bsim@fixef, 2, quantile, prob=c(0.025, 0.975))
-
-        # values to predict for
-            newD=data.frame(net_rearing_manipulation = seq(min(dtg$net_rearing_manipulation), max(dtg$net_rearing_manipulation), length.out = 300), chick_sex_molec = c('m','f','u'), brood_sex_ratio = mean(dtg$brood_sex_ratio))
-
-        # exactly the model which was used has to be specified here 
-            X <- model.matrix(~ net_rearing_manipulation +  
-                    chick_sex_molec + 
-                    brood_sex_ratio ,data=newD)   
-                        
-        # calculate predicted values and creditability intervals
-            newD$pred <-(X%*%v) 
-            predmatrix <- matrix(nrow=nrow(newD), ncol=nsim)
-            for(i in 1:nsim) predmatrix[,i] <- (X%*%bsim@fixef[i,])
-                predmatrix[predmatrix < 0] <- 0
-                newD$lwr <- apply(predmatrix, 1, quantile, prob=0.025)
-                newD$upr <- apply(predmatrix, 1, quantile, prob=0.975)
-                newD$pred <- apply(predmatrix, 1, quantile, prob=0.5)
-        pt=newD    
-        #ptm = pt[pt$chick_sex_molec == 'm',]
-        #ptf = pt[pt$chick_sex_molec == 'f',]
-        #ptu = pt[pt$chick_sex_molec == 'u',]
-
-        ggplot(pt, aes(x = net_rearing_manipulation, y = pred))  +
-            geom_ribbon(aes(ymin=lwr, ymax=upr, x=net_rearing_manipulation, fill = chick_sex_molec), alpha = 0.2, show.legend = NA)+ 
-            geom_line(aes(col =chick_sex_molec)) +
-            labs(x = 'Number of taken/added chicks', y = 'Weight [g]') +
-  theme_bw() +
-  theme(
-    text = element_text(family = "Franklin Gothic Book"),
-    legend.title = element_text(size = 10),
-    legend.text = element_text(size = 8),
-    axis.title.x = element_text(size = 10),
-    axis.text.x  = element_text(size = 8), 
-    axis.title.y = element_text(size = 10),
-    axis.text.y = element_text(size = 8),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    axis.ticks = element_line(size = 0.5, colour = "grey40"),
-    axis.ticks.length = unit(0.2, "cm"),
-    panel.border = element_rect(linetype = "solid", colour = "grey")
-  )
-
-```
 ```{r, echo=FALSE, results="hide", cache=TRUE}
 o_mw0g = m_out(name = "a - net chick", model = mw0g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
 ```
 
-##### Table W: effect sizes for chick weight model
+#### Table W | Effect sizes for chick weight models {#TableW}
+##### a {#Wa}
 ```{r, echo=FALSE}
 o_mw0g_source_note = paste("N = ", o_mw0g$N[1], "nests, AIC = ", round(as.numeric(o_mw0g$AIC[1], 4), 2), ", Marginal R-squared = ", round(as.numeric(o_mw0g$R2_mar[1], 4), 2), ", Conditional R-squared = ", round(as.numeric(o_mw0g$R2_con[1], 4), 2))
 
@@ -767,7 +834,7 @@ o_mw0g %>%
                      NA)) %>% 
   dplyr::select(type, effect, estimate_r, CI_String) %>% 
   gt(groupname_col = "type") %>% 
-  cols_label(effect = "",
+  cols_label(effect = "Effect type",
              estimate_r = "Parameter estimate",
              CI_String = "95% credible interval") %>% 
   cols_align(align = "left",
@@ -784,7 +851,6 @@ o_mw0g %>%
   # tab_source_note(source_note = o_mw0g_source_note)
 ```
 
-***
 
 ```{r, results="hide", cache=TRUE, echo=FALSE}
 mw14g =  lmer(day_14_weight ~ 
@@ -811,7 +877,7 @@ o_mw14g  = m_out(name = "b - day 14 chick #", model = mw14g, round_ = 3, nsim = 
 
 ```
 
-##### Table Wb: effect sizes for chick weight model
+##### b {#Wb}
 ```{r, echo=FALSE}
 o_mw14g_source_note = paste("N = ", o_mw14g$N[1], "nests, AIC = ", round(as.numeric(o_mw14g$AIC[1], 4), 2), ", Marginal R-squared = ", round(as.numeric(o_mw14g$R2_mar[1], 4), 2), ", Conditional R-squared = ", round(as.numeric(o_mw14g$R2_con[1], 4), 2))
 
@@ -823,7 +889,7 @@ o_mw14g %>%
                      NA)) %>% 
   dplyr::select(type, effect, estimate_r, CI_String) %>% 
   gt(groupname_col = "type") %>% 
-  cols_label(effect = "",
+  cols_label(effect = "Effect type",
              estimate_r = "Parameter estimate",
              CI_String = "95% credible interval") %>% 
   cols_align(align = "left",
@@ -835,12 +901,12 @@ o_mw14g %>%
               row_group.padding = 4,
               summary_row.padding = 2,
               column_labels.font.size = 14,
+              column_labels.hidden = TRUE,
               row_group.font.size = 12,
               table.width = pct(80)) #%>% 
   # tab_source_note(source_note = o_mw14g_source_note)
 ```
 
-***
 
 ```{r, results="hide", cache=TRUE, echo=FALSE}
 mw0gs =  lmer(day_14_weight ~ 
@@ -866,8 +932,7 @@ plot(allEffects(mw0gs))
 o_mw0gs = m_out(name = "c - (a) with sex interaction", model = mw0gs, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)   
 
 ```
-
-##### Table Wc: effect sizes for chick weight model
+##### c {#Wc}
 ```{r, echo=FALSE}
 o_mw0gs_source_note = paste("N = ", o_mw0gs$N[1], "nests, AIC = ", 
                             round(as.numeric(o_mw0gs$AIC[1], 4), 2), 
@@ -884,7 +949,7 @@ o_mw0gs %>%
                      NA)) %>% 
   dplyr::select(type, effect, estimate_r, CI_String) %>% 
   gt(groupname_col = "type") %>% 
-  cols_label(effect = "",
+  cols_label(effect = "Effect type",
              estimate_r = "Parameter estimate",
              CI_String = "95% credible interval") %>% 
   cols_align(align = "left",
@@ -896,6 +961,7 @@ o_mw0gs %>%
               row_group.padding = 4,
               summary_row.padding = 2,
               column_labels.font.size = 14,
+              column_labels.hidden = TRUE,
               row_group.font.size = 12,
               table.width = pct(80)) #%>% 
   # tab_source_note(source_note = o_mw0gs_source_note)
@@ -951,73 +1017,13 @@ summary(glht(mb0g))
 plot(allEffects(mb0g))
 ```
 
-##### Figure B: Predicted relationship between day 14 body mass index and net change in brood size according to chick sex (prediction and its 95% CI)
-```{r, echo=FALSE, cache=TRUE}
-m=  lmer(body_mass_index ~ 
-                net_rearing_manipulation +  
-                chick_sex_molec + 
-                brood_sex_ratio +
-                (1|day14_measurer) + (1|rear_area) + 
-                (1|rear_nest_OH_l) + (1|hatch_year)  +
-                (1|rear_nest_breed_ID) +
-                (1|hatch_mom_Ring) + (1|genetic_dad),
-                data = dmg, REML = reml
-                )
 
-        nsim <- 5000
-        bsim <- sim(m, n.sim=nsim)  
-            
-        # coefficients
-            v = apply(bsim@fixef, 2, quantile, prob=c(0.5))
-            ci = apply(bsim@fixef, 2, quantile, prob=c(0.025, 0.975))
-
-        # values to predict for
-            newD=data.frame(net_rearing_manipulation = seq(min(dtg$net_rearing_manipulation), max(dtg$net_rearing_manipulation), length.out = 300), chick_sex_molec = c('m','f','u'), brood_sex_ratio = mean(dtg$brood_sex_ratio))
-
-        # exactly the model which was used has to be specified here 
-            X <- model.matrix(~ net_rearing_manipulation +  
-                    chick_sex_molec + 
-                    brood_sex_ratio ,data=newD)   
-                        
-        # calculate predicted values and creditability intervals
-            newD$pred <-(X%*%v) 
-            predmatrix <- matrix(nrow=nrow(newD), ncol=nsim)
-            for(i in 1:nsim) predmatrix[,i] <- (X%*%bsim@fixef[i,])
-                predmatrix[predmatrix < 0] <- 0
-                newD$lwr <- apply(predmatrix, 1, quantile, prob=0.025)
-                newD$upr <- apply(predmatrix, 1, quantile, prob=0.975)
-                newD$pred <- apply(predmatrix, 1, quantile, prob=0.5)
-        pt=newD    
-        #ptm = pt[pt$chick_sex_molec == 'm',]
-        #ptf = pt[pt$chick_sex_molec == 'f',]
-        #ptu = pt[pt$chick_sex_molec == 'u',]
-
-        ggplot(pt, aes(x = net_rearing_manipulation, y = pred))  +
-            geom_ribbon(aes(ymin=lwr, ymax=upr, x=net_rearing_manipulation, fill = chick_sex_molec), alpha = 0.2, show.legend = NA)+ 
-            geom_line(aes(col =chick_sex_molec)) +
-            labs(x = 'Number of taken/added chicks', y = 'Body mass index') +
-  theme_bw() +
-  theme(
-    text = element_text(family = "Franklin Gothic Book"),
-    legend.title = element_text(size = 10),
-    legend.text = element_text(size = 8),
-    axis.title.x = element_text(size = 10),
-    axis.text.x  = element_text(size = 8), 
-    axis.title.y = element_text(size = 10),
-    axis.text.y = element_text(size = 8),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    axis.ticks = element_line(size = 0.5, colour = "grey40"),
-    axis.ticks.length = unit(0.2, "cm"),
-    panel.border = element_rect(linetype = "solid", colour = "grey")
-  )
-
-```
 ```{r, echo=FALSE, results="hide", cache=TRUE}
-o_mb0g = m_out(name = "a - net chick", model = mb0g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
+o_mb0g = m_out(name = "a - net chick", model = mb0g, round_ = 5, nsim = 5000, aic = TRUE, N = 2550)
 ```
 
-##### Table B: effect sizes for chick body mass index model
+#### Table B | Effect sizes for chick body mass index models {#TableB}
+##### a {#Ba}
 ```{r, echo=FALSE}
 o_mb0g_source_note = paste("N = ", o_mb0g$N[1], "nests, AIC = ", round(as.numeric(o_mb0g$AIC[1], 4), 2), ", Marginal R-squared = ", round(as.numeric(o_mb0g$R2_mar[1], 4), 2), ", Conditional R-squared = ", round(as.numeric(o_mb0g$R2_con[1], 4), 2))
 
@@ -1029,7 +1035,7 @@ o_mb0g %>%
                      NA)) %>% 
   dplyr::select(type, effect, estimate_r, CI_String) %>% 
   gt(groupname_col = "type") %>% 
-  cols_label(effect = "",
+  cols_label(effect = "Effect type",
              estimate_r = "Parameter estimate",
              CI_String = "95% credible interval") %>% 
   cols_align(align = "left",
@@ -1045,8 +1051,6 @@ o_mb0g %>%
               table.width = pct(80)) #%>% 
   # tab_source_note(source_note = o_mb0g_source_note)
 ```
-
-***
 
 ```{r, results="hide", cache=TRUE, echo=FALSE}
 mb14g =  lmer(body_mass_index ~ 
@@ -1070,10 +1074,10 @@ summary(glht(mb14g))
 plot(allEffects(mb14g))
 ```
 ```{r, echo=FALSE, results="hide", cache=TRUE}
-o_mb14g  = m_out(name = "b - day 14 chick #", model = mb14g, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)
+o_mb14g  = m_out(name = "b - day 14 chick #", model = mb14g, round_ = 5, nsim = 5000, aic = TRUE, N = 2550)
 ```
 
-##### Table Bb: effect sizes for chick body mass index model
+##### b {#Bb}
 ```{r, echo=FALSE}
 o_mb14g_source_note = paste("N = ", o_mb14g$N[1], "nests, AIC = ", round(as.numeric(o_mb14g$AIC[1], 4), 2), ", Marginal R-squared = ", round(as.numeric(o_mb14g$R2_mar[1], 4), 2), ", Conditional R-squared = ", round(as.numeric(o_mb14g$R2_con[1], 4), 2))
 
@@ -1085,7 +1089,7 @@ o_mb14g %>%
                      NA)) %>% 
   dplyr::select(type, effect, estimate_r, CI_String) %>% 
   gt(groupname_col = "type") %>% 
-  cols_label(effect = "",
+  cols_label(effect = "Effect type",
              estimate_r = "Parameter estimate",
              CI_String = "95% credible interval") %>% 
   cols_align(align = "left",
@@ -1097,12 +1101,11 @@ o_mb14g %>%
               row_group.padding = 4,
               summary_row.padding = 2,
               column_labels.font.size = 14,
+              column_labels.hidden = TRUE,
               row_group.font.size = 12,
               table.width = pct(80)) #%>% 
   # tab_source_note(source_note = o_mb14g_source_note)
 ```
-
-***
 
 ```{r, results="hide", cache=TRUE, echo=FALSE}
 mb0gs =  lmer(body_mass_index ~ 
@@ -1125,10 +1128,10 @@ summary(glht(mb0gs))
 plot(allEffects(mb0gs))
 ```
 ```{r, echo=FALSE, results="hide", cache=TRUE}
-o_mb0gs = m_out(name = "c - (a) with sex interaction", model = mb0gs, round_ = 3, nsim = 5000, aic = TRUE, N = 2550)   
+o_mb0gs = m_out(name = "c - (a) with sex interaction", model = mb0gs, round_ = 5, nsim = 5000, aic = TRUE, N = 2550)   
 ```
 
-##### Table Bc: effect sizes for chick body mass index model
+##### c {#Bc}
 ```{r, echo=FALSE}
 o_mb0gs_source_note = paste("N = ", o_mb0gs$N[1], "nests, AIC = ", 
                             round(as.numeric(o_mb0gs$AIC[1], 4), 2), 
@@ -1145,7 +1148,7 @@ o_mb0gs %>%
                      NA)) %>% 
   dplyr::select(type, effect, estimate_r, CI_String) %>% 
   gt(groupname_col = "type") %>% 
-  cols_label(effect = "",
+  cols_label(effect = "Effect type",
              estimate_r = "Parameter estimate",
              CI_String = "95% credible interval") %>% 
   cols_align(align = "left",
@@ -1157,6 +1160,7 @@ o_mb0gs %>%
               row_group.padding = 4,
               summary_row.padding = 2,
               column_labels.font.size = 14,
+              column_labels.hidden = TRUE,
               row_group.font.size = 12,
               table.width = pct(80)) #%>% 
   # tab_source_note(source_note = o_mb0gs_source_note)
@@ -1187,7 +1191,7 @@ o_mb0gs %>%
 ```
 
 ***
-```{r, fig.width = 4, echo=FALSE}
+```{r Fig EP, echo=FALSE, fig.width=8, fig.height=8}
 mortality_plot <-
   ggplot(data = morphometric_summaries) +
   geom_abline(intercept = 0 , slope = 1, linetype = "dashed", color = "grey30") + 
@@ -1195,8 +1199,8 @@ mortality_plot <-
   geom_jitter(aes(y = as.numeric(change_chick_n_increase), x = as.numeric(change_chick_n_decrease)), 
               alpha = 0.5, width = 0.1, height = 0.2) +
   coord_fixed(ratio = 1) +
-  xlab(expression(paste("Number is dead chicks in ", italic("REDUCED")," brood (± SE)"))) +
-  ylab(expression(paste("Number is dead chicks in ", italic("ENLARGED")," brood (± SE)"))) +
+  xlab(expression(paste("Number of dead chicks in ", italic("REDUCED")," brood (± SE)"))) +
+  ylab(expression(paste("Number of dead chicks in ", italic("ENLARGED")," brood (± SE)"))) +
   scale_y_continuous(limits = c(-1, 10)) +
   scale_x_continuous(limits = c(-1, 10)) +
   annotate(geom = "text", y = 7.25, x = 8.5, angle = 45,
@@ -1210,7 +1214,7 @@ mortality_plot <-
            color = "black", size = 6, fontface = 'bold') +
   theme_bw() +
   theme(
-    text = element_text(family = "Franklin Gothic Book"),
+    #text = element_text(family = "Franklin Gothic Book"),
     legend.title = element_text(size = 10),
     legend.text = element_text(size = 8),
     axis.title.x = element_text(size = 10),
@@ -1223,9 +1227,7 @@ mortality_plot <-
     axis.ticks.length = unit(0.2, "cm"),
     panel.border = element_rect(linetype = "solid", colour = "grey")
   )
-```
 
-```{r, fig.width = 4, echo=FALSE}
 tarsus_plot <- 
   ggplot(data = morphometric_summaries) +
   geom_abline(intercept = 0 , slope = 1, linetype = "dashed", color = "grey30") + 
@@ -1252,7 +1254,7 @@ tarsus_plot <-
            color = "black", size = 6, fontface = 'bold') +
   theme_bw() +
   theme(
-    text = element_text(family = "Franklin Gothic Book"),
+    #text = element_text(family = "Franklin Gothic Book"),
     legend.title = element_text(size = 10),
     legend.text = element_text(size = 8),
     axis.title.x = element_text(size = 10),
@@ -1265,9 +1267,7 @@ tarsus_plot <-
     axis.ticks.length = unit(0.2, "cm"),
     panel.border = element_rect(linetype = "solid", colour = "grey")
   )
-```
 
-```{r, fig.width = 4, echo=FALSE}
 mass_plot <-
   ggplot(data = morphometric_summaries) +
   geom_abline(intercept = 0 , slope = 1, linetype = "dashed", color = "grey30") + 
@@ -1288,7 +1288,7 @@ mass_plot <-
            color = "black", size = 6, fontface = 'bold') +
   theme_bw() +
   theme(
-    text = element_text(family = "Franklin Gothic Book"),
+    #text = element_text(family = "Franklin Gothic Book"),
     legend.title = element_text(size = 10),
     legend.text = element_text(size = 8),
     axis.title.x = element_text(size = 10),
@@ -1301,9 +1301,7 @@ mass_plot <-
     axis.ticks.length = unit(0.2, "cm"),
     panel.border = element_rect(linetype = "solid", colour = "grey")
   )
-```
 
-```{r, fig.width = 4, echo=FALSE}
 BMI_plot <-
   ggplot(data = morphometric_summaries) +
   geom_abline(intercept = 0 , slope = 1, linetype = "dashed", color = "grey30") + 
@@ -1322,9 +1320,9 @@ BMI_plot <-
   annotate(geom = "text", y = 0.0475, x = 0.025,
            label = "B",
            color = "black", size = 6, fontface = 'bold') +
-  theme_bw() +
+  theme_bw() + 
   theme(
-    text = element_text(family = "Franklin Gothic Book"),
+   # text = element_text(family = "Franklin Gothic Book"),
     legend.title = element_text(size = 10),
     legend.text = element_text(size = 8),
     axis.title.x = element_text(size = 10),
@@ -1337,9 +1335,7 @@ BMI_plot <-
     axis.ticks.length = unit(0.2, "cm"),
     panel.border = element_rect(linetype = "solid", colour = "grey")
   )
-```
 
-```{r, echo=FALSE, fig.width=8, fig.height=8}
 ggarrange(mortality_plot,
           tarsus_plot,
           mass_plot,
@@ -1347,6 +1343,5 @@ ggarrange(mortality_plot,
           ncol = 2, nrow = 2, align = "hv")
 ```
 
-
-##### **Figure EP** 
-*Each point is a mean, the bars are standars errors (horizontal for the reduced brood, vertical for the enlarged brood) for each pair of nests that were experimentally controlled (“matched”) for hatch date and for brood size (“partly” - see *Methods*). Dashed diagonal line represents no change in chick body morphometrics in response to the experimental brood enlargement or reduction. Points on the lower-right space of the plot show brood pairs in which chicks in the reduced treatment were larger in body traits than the increased treatment counterparts. Conversely, points in the upper-left space show brood pairs in which chicks in the enlarged treatment were larger in body size traits than the reduced counterparts.*
+#### Figure EP | Differences in chick mortality and size within paired nests {#FigEP}
+Each point is a mean, the bars are standars errors (horizontal for the reduced brood, vertical for the enlarged brood) for each pair of nests that were experimentally controlled (“matched”) for hatch date and for brood size (“partly” - see *Methods*). Dashed diagonal line represents no change in chick body morphometrics in response to the experimental brood enlargement or reduction. Points on the lower-right space of the plot show brood pairs in which chicks in the reduced treatment were larger in body traits than the increased treatment counterparts. Conversely, points in the upper-left space show brood pairs in which chicks in the enlarged treatment were larger in body size traits than the reduced counterparts.*
