@@ -36,7 +36,7 @@
 
         m_ass(name = 'Table M - change_chick_n-net_rearing_man+sex_ratio', mo = m, dat = mou, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = NULL, trans = c('none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
 
-# MAIN TEXT TABLES
+# CHICK SIZE TABLES - Main text
     # TARSUS - Table T 
         # prepare data
             dtg = a[complete.cases(a),.(day_14_tarsus_length, net_rearing_manipulation, net_rearing_manipulation_factor, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID, hatch_mom_Ring, genetic_dad)]
@@ -256,7 +256,7 @@
 
             m_ass(name = 'Table Bc - BMI-netxsex+sex-ratio', mo = mb0gs, dat = dmg, fixed = c('net_rearing_manipulation', 'brood_sex_ratio'),categ = 'chick_sex_molec', trans = c('none','none','none'), spatial = FALSE, temporal = TRUE, PNG = TRUE, outdir = "Output/Model_ass/")
     
-# EXTENDED MATERIAL TABLES
+# CHICK SIZE TABLES - EXTENDED MATERIAL
     # TARSUS - Table TE 
         # INFO
             # scaled response and continuous predictors - standardized effects 
