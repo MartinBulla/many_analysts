@@ -568,7 +568,7 @@ Change in chick number between day 0 and day 14 of the experiment (a), tarsus le
 
 ***
 #### Table M | Effect sizes for chick mortality (*Model M*) {#TableM}
-```{r Table M, warning = FALSE, messages = FALSE}
+```{r Table M, warning = FALSE, message = FALSE}
 
 m = lmer(change_chick_n ~ net_rearing_manipulation  +       
                       brood_sex_ratio +     
@@ -607,7 +607,7 @@ o_m %>%
 
 #### Table T | Effect sizes for chick tarsus models {#TableT}
 ##### a {#Ta}
-```{r, warning = FALSE, messages = FALSE, cache = TRUE}
+```{r, warning = FALSE, message = FALSE, cache = TRUE}
 dtg = a[complete.cases(a),.(day_14_tarsus_length, net_rearing_manipulation, net_rearing_manipulation_factor, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID, hatch_mom_Ring, genetic_dad)]
 
 #cor(dtg$d14_rear_nest_brood_size, dtg$net_rearing_manipulation)
@@ -654,7 +654,7 @@ o_mt0g %>%
 ```
 
 ##### b {#Tb}
-```{r, warning = FALSE, messages = FALSE, cache = TRUE}
+```{r, warning = FALSE, message = FALSE, cache = TRUE}
 mt14g =  lmer(day_14_tarsus_length ~ 
     d14_rear_nest_brood_size +  
     chick_sex_molec + 
@@ -698,7 +698,7 @@ o_mt14g %>%
 ```
 
 ##### c {#Tc}
-```{r, warning = FALSE, messages = FALSE, cache = TRUE}
+```{r, warning = FALSE, message = FALSE, cache = TRUE}
 mt0gs =  lmer(day_14_tarsus_length ~ 
     net_rearing_manipulation * chick_sex_molec + 
     brood_sex_ratio +
@@ -767,7 +767,7 @@ o_mt0gs %>%
 
 #### Table W | Effect sizes for chick weight models {#TableW}
 ##### a {#Wa}
-```{r, warning = FALSE, messages = FALSE, cache = TRUE}
+```{r, warning = FALSE, message = FALSE, cache = TRUE}
 dwg = a[complete.cases(a),.(day_14_weight, net_rearing_manipulation, net_rearing_manipulation_factor, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID, hatch_mom_Ring, genetic_dad)]
             
 mw0g =  lmer(day_14_weight ~ 
@@ -813,7 +813,7 @@ o_mw0g %>%
 ```
 
 ##### b {#Wb}
-```{r, warning = FALSE, messages = FALSE, cache = TRUE}
+```{r, warning = FALSE, message = FALSE, cache = TRUE}
 dwg = a[complete.cases(a),.(day_14_weight, net_rearing_manipulation, net_rearing_manipulation_factor, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID, hatch_mom_Ring, genetic_dad)]
 
 mw14g =  lmer(day_14_weight ~ 
@@ -861,7 +861,7 @@ o_mw14g %>%
 
 
 ##### c {#Wc}
-```{r, warning = FALSE, messages = FALSE, cache = TRUE}
+```{r, warning = FALSE, message = FALSE, cache = TRUE}
 dwg = a[complete.cases(a),.(day_14_weight, net_rearing_manipulation, net_rearing_manipulation_factor, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID, hatch_mom_Ring, genetic_dad)]
 
 mw0gs =  lmer(day_14_weight ~ 
@@ -937,7 +937,7 @@ o_mw0gs %>%
 
 #### Table B | Effect sizes for chick body mass index models {#TableB}
 ##### a {#Ba}
-```{r, warning = FALSE, messages = FALSE, cache = TRUE}
+```{r, warning = FALSE, message = FALSE, cache = TRUE}
      
 dmg = a[complete.cases(a),.(body_mass_index, net_rearing_manipulation, net_rearing_manipulation_factor, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID, hatch_mom_Ring, genetic_dad)]
 
@@ -983,7 +983,7 @@ o_mb0g %>%
 ```
 
 ##### b {#Bb}
-```{r, warning = FALSE, messages = FALSE, cache = TRUE}
+```{r, warning = FALSE, message = FALSE, cache = TRUE}
      
 dmg = a[complete.cases(a),.(body_mass_index, net_rearing_manipulation, net_rearing_manipulation_factor, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID, hatch_mom_Ring, genetic_dad)]
 
@@ -1029,7 +1029,7 @@ o_mb14g %>%
 ```
 
 ##### c {#Bc}
-```{r, warning = FALSE, messages = FALSE, cache = TRUE}
+```{r, warning = FALSE, message = FALSE, cache = TRUE}
      
 dmg = a[complete.cases(a),.(body_mass_index, net_rearing_manipulation, net_rearing_manipulation_factor, d14_rear_nest_brood_size, chick_sex_molec, brood_sex_ratio, day14_measurer, rear_area, rear_nest_OH_l, hatch_year,rear_nest_breed_ID, hatch_mom_Ring, genetic_dad)]
 
