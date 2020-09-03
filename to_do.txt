@@ -1,4 +1,0 @@
-Check why we link in the second paragraph of results once to Ts and other times to TEs tables within dropbox
-Tweak the code folding.
-What to do with the cached GitHub files
-Update the links to our htmls and to github and dropbox
