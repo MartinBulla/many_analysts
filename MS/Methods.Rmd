@@ -12,7 +12,19 @@ bibliography: many_analysts.xml
 knitr::opts_chunk$set(warning=FALSE, message = FALSE)
 ```
 
-```{r libraries}
+# General background
+Upon reading the data description and metadata for ‘Many EcoEvo Analysts’ dataset provided by the [project coordinators of 'same data different analysts' project](https://osf.io/34fzc/) we have [**A PRIORI** decided upon the procedures and analyses](https://raw.githack.com/MartinBulla/many_analysts/master/MS/Protocol.html) to answer the key **question**: **"To what extent is the growth of nestling blue tits (*Cyanistes caeruleus*) influenced by competition with siblings?"**.
+
+We have anticipated, but not expected, that the actual data differ from the [data description](https://osf.io/34fzc/). Although the nests with reduced and increased brood size are well matched by hatch date ([Figure 1](#Fig1), [Table 1](#Table1)), in 20% they differ by more than one chick in hatched brood size and in 9% of case the differences are extreme (i.e., brood size differences of 3 or more chicks).
+
+Importantly, the data description indicated that in broods with 4-5 chicks only one chick was taken or added and in broods with 12-16 chicks four chicks were taken or added. This is not the case. Broods of different than indicated size were used and other chick numbers were added and taken ([Figure 2](#Fig2)). Also, we have not expected that a key variable number of chicks at the start of experiment ('rear_Cs_at_start_of_rearing') will be missing 90% of the cases. Thus, we do not use this variable in chick size models (see [below](#Mod)).
+
+See [here](https://raw.githack.com/MartinBulla/many_analysts/master/Output/data_exploration_and_analytical_decisions.html) for our entire data exploration work flow that stems from our *a priori* desicions outlined in our [protocol](https://raw.githack.com/MartinBulla/many_analysts/master/MS/Protocol.html). 
+
+***
+Code to load tools and prepare data:
+```{r tootl,results="hide"}
+# R packages
 library(tidyverse)
 library(lme4)
 library(standardize)
@@ -22,9 +34,8 @@ library(here)
 library(effects)
 library(performance)
 library(GGally)
-```
 
-```{r plotting theme}
+# custom ggplot theme
 luke_theme <- 
   theme_bw() +
   theme(
@@ -44,13 +55,9 @@ luke_theme <-
 
 # set the ggplotting theme
 theme_set(luke_theme)
-```
 
-```{r data import}
 BT_data <- read.csv(here("Data/blue_tit_data.csv"), stringsAsFactors = FALSE)
-```
 
-```{r tidy up data}
 BT_data_tidy <-
   BT_data %>% 
   # select variables of interest
@@ -100,14 +107,7 @@ BT_data_tidy <-
   left_join(., BT_nest_pairs, by = "hatch_nest_breed_ID")
 ```
 
-# General background
-Upon reading the data description and metadata for ‘Many EcoEvo Analysts’ dataset provided by the [project coordinators of 'same data different analysts' project](https://osf.io/34fzc/) we have [**A PRIORI** decided upon the procedures and analyses](https://raw.githack.com/MartinBulla/many_analysts/master/MS/Protocol.html) to answer the key **question**: **"To what extent is the growth of nestling blue tits (*Cyanistes caeruleus*) influenced by competition with siblings?"**.
-
-We have anticipated, but not expected, that the actual data differ from the [data description](https://osf.io/34fzc/). Although the nests with reduced and increased brood size are well matched by hatch date ([Figure 1](#Fig1), [Table 1](#Table1)), in 20% they differ by more than one chick in hatched brood size and in 9% of case the differences are extreme (i.e., brood size differences of 3 or more chicks).
-
-Importantly, the data description indicated that in broods with 4-5 chicks only one chick was taken or added and in broods with 12-16 chicks four chicks were taken or added. This is not the case. Broods of different than indicated size were used and other chick numbers were added and taken ([Figure 2](#Fig2)). Also, we have not expected that a key variable number of chicks at the start of experiment ('rear_Cs_at_start_of_rearing') will be missing 90% of the cases. Thus, we do not use this variable in chick size models (see [below](#Mod)).
-
-See [here](https://raw.githack.com/MartinBulla/many_analysts/master/Output/data_exploration_and_analytical_decisions.html) for our entire data exploration work flow that stems from our *a priori* desicions outlined in our [protocol](https://raw.githack.com/MartinBulla/many_analysts/master/MS/Protocol.html). 
+***
 
 #### Figure 1. Frequency distribution of brood size (left) and hatch date differences (right) in paired nests.{#Fig1}
 ```{r figure 1, fig.align="center", fig.width=8, fig.height=5}
@@ -183,7 +183,7 @@ We have two main sets of the models, as specified in our [a priori protocol](htt
 We specified the change in chick number in the rearing nests (`change_chick_n`) as a difference between the number of chicks at the start of the experiment (`rear_Cs_at_start_of_rearing`) and number of chicks on day 14 of the experiment (`d14_rear_nest_brood_size`) and fitted this variable as a response. The number of chicks to enlarge or reduce the brood (`net_rearing_manipulation`; range -4 to 4, median 0; note that zero indicates the control nests) and brood sex ratio (`brood_sex_ratio`; range 0-1, median 0.5) as explanatory variables. Brood sex ratio was calculated as proportion of males in the nest (1 = all males, 0 = all females), while indicating unknown sex of chicks as 0.5. To control for pseudoreplication (multiple-sampling), we specified the measurer (`day14_measurer`), the compartment of the study area (`rear_area`), the year (`hatch_year`) and the day on which the rear nest hatched left centered within year, i.e. minimum hatch day within each year subtracted from hatch day of a given nest (`rear_nest_OH_l`) as random intercepts. In total, we had 357 nests for which these data were available. 
 
 #### Model M - chick mortality
-```r
+```
     lmer(change_chick_n ~ 
          net_rearing_manipulation  +       
          brood_sex_ratio +     
@@ -221,7 +221,7 @@ We then specified three subsets of models, each with one of the chick morphometr
 ``` 
 
 #### Model Wa - weight
-```{r, eval=FALSE, echo=TRUE}
+```
     lmer(day_14_weight ~ 
          net_rearing_manipulation + chick_sex_molec + 
          brood_sex_ratio +
@@ -237,7 +237,7 @@ We then specified three subsets of models, each with one of the chick morphometr
 ``` 
 
 #### Model Ba - body mass index 
-```{r, eval=FALSE, echo=TRUE}
+```
     lmer(body_mass_index 
          net_rearing_manipulation + chick_sex_molec + 
          brood_sex_ratio +
@@ -256,7 +256,7 @@ Note that the above described models (Ta, Wa, Ba) differ from those proposed in 
 
 To verify whether the effects of the treatment differs between females and males, we modified the above models by adding an interaction between sex and net change in chick numbers `net_rearing_manipulation` (as indicated in our [a priori protocol](https://raw.githack.com/MartinBulla/many_analysts/master/MS/Protocol.html); see models c in [Results](https://raw.githack.com/MartinBulla/many_analysts/master/MS/Results.html)).
 
-In addition, and as intended, we have also fitted the *a priori* defined models that control for experimental pairs (i.e., reduced, enlarged). For this paired analyses we have thus used only the pairs that differ in the original brood size by no more than one chick (75% of nest pairs, N = 303; see [Figure 2](#Fig2) above). As not all data in the dataset had pairs assigned and as this method does not work for control nests, we have refitted the Table T, W and B models to the reduced data and included random slope `pair_ID`. These results ([Tables TEP, TWE, TBE](https://www.dropbox.com/sh/5ck2vdxvnbw5i6w/AABKOyD54Rvj0zGDAMlTMTYqa?dl=0)) are similar to those from the initial models (Tables T, W, B in [Results](https://raw.githack.com/MartinBulla/many_analysts/MS/Results.html)).
+In addition, and as intended, we have also fitted the *a priori* defined models that control for experimental pairs (i.e., reduced, enlarged). For this paired analyses we have thus used only the pairs that differ in the original brood size by no more than one chick (75% of nest pairs, N = 303; see [Figure 2](#Fig2) above). As not all data in the dataset had pairs assigned and as this method does not work for control nests, we have refitted the Table T, W and B models to the reduced data and included random slope `pair_ID`. These results ([Tables TEP, TWE, TBE](https://www.dropbox.com/sh/fmyp12uu45qruwo/AACkHcZAZvqYL0Z0Z1ZIShF1a?dl=0)) are similar to those from the initial models (Tables T, W, B in [Results](https://raw.githack.com/MartinBulla/many_analysts/master/MS/Results.html)).
 
 ## (3) Exploratory models
 To explore whether the results are consistent even if we specify the models according to our *a priori* protocol (but regardless of our *a priori* assumptions), we added to the [Chick size models](#ChickS) (models T, W, B) an interaction between `d14_rear_nest_brood_size` and `net_rearing_manipulation`, and specified models without an interaction but with both variables present. To faciliate interpretation of the interactions and also to compare the standardised effect sizes between variaous responses and models, we present these exploratory results together with the above models (T, W, B), but with the response and fixed effects scaled (see [Table TE, Table WE and Table BE](https://www.dropbox.com/sh/fmyp12uu45qruwo/AACkHcZAZvqYL0Z0Z1ZIShF1a?dl=0)). As is clear from these tables, the results of these exploratory models were fundamentally similar to our simple Ta, Wa and Ba models (see models `a` in the [Table TE, Table WE and Table BE](https://www.dropbox.com/sh/fmyp12uu45qruwo/AACkHcZAZvqYL0Z0Z1ZIShF1a?dl=0).
