@@ -4,12 +4,12 @@ author: "Luke J. Eberhart-Phillips and Martin Bulla"
 date: "`r Sys.time()`"
 output: 
     html_document: 
-        code_folding: show
+        code_folding: hide
 bibliography: many_analysts.xml
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message = FALSE)
+knitr::opts_chunk$set(warning=FALSE, message = FALSE)
 ```
 
 ```{r libraries}
@@ -107,7 +107,7 @@ We have anticipated, but not expected, that the actual data differ from the [dat
 
 Importantly, the data description indicated that in broods with 4-5 chicks only one chick was taken or added and in broods with 12-16 chicks four chicks were taken or added. This is not the case. Broods of different than indicated size were used and other chick numbers were added and taken ([Figure 2](#Fig2)). Also, we have not expected that a key variable number of chicks at the start of experiment ('rear_Cs_at_start_of_rearing') will be missing 90% of the cases. Thus, we do not use this variable in chick size models (see [below](#Mod)).
 
-See [here](https://raw.githack.com/MartinBulla/many_analysts/master/R/data_exploration_and_analytical_decisions.html) for our entire data exploration work flow that stems from our *a priori* desicions outlined in our [protocol](https://raw.githack.com/MartinBulla/many_analysts/master/MS/Protocol.html). 
+See [here](https://raw.githack.com/MartinBulla/many_analysts/master/Output/data_exploration_and_analytical_decisions.html) for our entire data exploration work flow that stems from our *a priori* desicions outlined in our [protocol](https://raw.githack.com/MartinBulla/many_analysts/master/MS/Protocol.html). 
 
 #### Figure 1. Frequency distribution of brood size (left) and hatch date differences (right) in paired nests.{#Fig1}
 ```{r figure 1, fig.align="center", fig.width=8, fig.height=5}
@@ -205,7 +205,7 @@ In humans, the body mass index broadly categorizes a person as underweight, norm
 We then specified three subsets of models, each with one of the chick morphometric variables as a response. The number of chicks to enlarge or reduce the brood (`net_rearing_manipulation`; range -4 - 4, median 0; note that zero indicates the control nests) was specified as an explanatory variable, testing for the treatment effect. We controlled the model for chick sex (`chick_sex_molec`; m - male, f - female, u - unknown), and brood sex ratio (`brood_sex_ratio`; range 0-1, median 0.5, calculated as described in [Chick mortality model](#ChickM)) because female and male blue tit chicks grow differently [@Mainwaring2010]. To control for pseudoreplication (multiple-sampling), we specified the measurer (`day14_measurer`), the compartment of the study area (`rear_area`), the year (`hatch_year`), the day on which the rear nest hatched (left centered) within year (`rear_nest_OH_l`; calculated as described in [Chick mortality model](#ChickM)), the identification of rearing nest (`rear_nest_breed_ID`) and of genetic parents (`hatch_mom_Ring` and `genetic_dad`) as random intercepts. Such data were available for 2550 nests.
 
 #### Model Ta - tarsus
-```{r, eval=FALSE, echo=TRUE}
+```
     lmer(day_14_tarsus_length ~ 
          net_rearing_manipulation + chick_sex_molec + 
          brood_sex_ratio +
