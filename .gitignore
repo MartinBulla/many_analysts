@@ -29,3 +29,5 @@
 
 # Ignore everything in freeze
 freeze/
+MS/Results_cache
+MS/Results_files
