@@ -4,7 +4,7 @@ author: "Luke J. Eberhart-Phillips and Martin Bulla"
 date: "`r Sys.time()`"
 output: 
     html_document:
-        code_folding: show
+        code_folding: hide
 bibliography: many_analysts.xml
 ---
 
@@ -19,7 +19,7 @@ Note that males tend to have larger tarsi and are heavier (regardless of the tre
 
 ***
 
-```{r tools, echo=FALSE, results="hide"}
+```{r tools, results="hide"}
 
 reml = TRUE # models fitted with REML (TRUE) or ML (FALSE)
 nsim <- 5000 # number of simulations for predictions
@@ -1344,6 +1344,6 @@ ggarrange(mortality_plot,
 ```
 
 #### Figure EP | Differences in chick mortality and size within paired nests {#FigEP}
-Each point is a mean, the bars are standars errors (horizontal for the reduced brood, vertical for the enlarged brood) for each pair of nests that were experimentally controlled (“matched”) for hatch date and (partly) for brood size (see [Methods](https://raw.githack.com/MartinBulla/many_analysts/MS/Methods.html)). Dashed diagonal line represents no change in chick body morphometrics in response to the experimental brood enlargement or reduction. Points on the lower-right space of the plot show brood pairs in which chicks in the reduced treatment were larger than the increased treatment counterparts. Conversely, points in the upper-left space show brood pairs in which chicks in the enlarged treatment were larger than the reduced counterparts.
+Each point is a mean, the bars are standars errors (horizontal for the reduced brood, vertical for the enlarged brood) for each pair of nests that were experimentally controlled (“matched”) for hatch date and (partly) for brood size (see [Methods](https://raw.githack.com/MartinBulla/many_analysts/data_exploration/MS/Methods.html)). Dashed diagonal line represents no change in chick body morphometrics in response to the experimental brood enlargement or reduction. Points on the lower-right space of the plot show brood pairs in which chicks in the reduced treatment were larger than the increased treatment counterparts. Conversely, points in the upper-left space show brood pairs in which chicks in the enlarged treatment were larger than the reduced counterparts.
 
 ***
