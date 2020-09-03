@@ -27,3 +27,12 @@ raster
 stringr
 zoo
 gt
+tidyverse
+tibble
+tidyr
+readr
+purrr
+dplyr
+forcats
+ggpubr
+gridExtra
