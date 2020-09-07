@@ -102,8 +102,10 @@ using<-function(...) {
         }
      x$R2_mar = ""
      x$R2_con = ""
-     x$R2_mar [1]= r2_nakagawa(model)$R2_marginal
-     x$R2_con [1]= r2_nakagawa(model)$R2_conditional
+     x$R2_mar [1]= invisible({capture.output({r2_nakagawa(model)$R2_marginal})})
+     x$R2_con [1]= invisible({capture.output({r2_nakagawa(model)$R2_conditional})})
+     #x$R2_mar [1]= r2_nakagawa(model)$R2_marginal
+     #x$R2_con [1]= r2_nakagawa(model)$R2_conditional
     return(x)
   } 
 # model assumption function
