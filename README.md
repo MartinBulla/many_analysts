@@ -20,6 +20,6 @@ Protocols, methods, codes and results of our analysys for the '[same data differ
 
 [R](https://github.com/MartinBulla/many_analysts/tree/master/R): all r-scripts used in the analyses
 
-[Output](https://github.com/MartinBulla/many_analysts/tree/master/R): all results of the analyses (i.e. Tables and Figures) including extended Tables and plots of model assumptions. Note that the Tables (xlsx files) and Figures (png files) are easier to view within [Output folder on Dropbox](https://www.dropbox.com/sh/fmyp12uu45qruwo/AACkHcZAZvqYL0Z0Z1ZIShF1a?dl=0) where we in addition to GitHub also host [the whole repository](https://www.dropbox.com/sh/fbtne85baapqh0h/AABMEZgtROzyBv1e20bXEgpHa?dl=0.
+[Output](https://github.com/MartinBulla/many_analysts/tree/master/R): all results of the analyses (i.e. Tables and Figures) including extended Tables and plots of model assumptions. Note that the Tables (xlsx files) and Figures (png files) are easier to view within [Output folder on Dropbox](https://www.dropbox.com/sh/fmyp12uu45qruwo/AACkHcZAZvqYL0Z0Z1ZIShF1a?dl=0) where we in addition to GitHub also host [the whole repository](https://www.dropbox.com/sh/fbtne85baapqh0h/AABMEZgtROzyBv1e20bXEgpHa?dl=0).
 
 ## [Dropbox clone of the repository](https://www.dropbox.com/sh/fbtne85baapqh0h/AABMEZgtROzyBv1e20bXEgpHa?dl=0)
