@@ -258,11 +258,6 @@ a = fread('../Data/blue_tit_data.csv')
     mou[, net_rearing_manipulation_factor := as.factor(net_rearing_manipulation)]
     
     reml = TRUE
-    
-# dataset for paired analyses
-    p = fread('../Data/blue_tit_nest_pairs_IDs.csv') 
-    p = merge(a,p[,.(rear_nest_breed_ID, pair_ID)], all.x = TRUE)
-    p = p[!is.na(pair_ID)]
 
 # dataset for paired plots
     BT_data <- read.csv(file = "../Data/blue_tit_data.csv", stringsAsFactors = FALSE)
