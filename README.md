@@ -2,7 +2,7 @@
 
 ## **Overview**
 
-Protocols, methods, codes and results of the analysis for the 'same data different analysts' project, answering the research question "To what extent is the growth of nestling blue tits (*Cyanistes caeruleus*) influenced by competition with siblings?"
+Protocols, methods, codes and results of the analysis for the [same data different analysts project](https://osf.io/mn5aj/), answering the research question ["To what extent is the growth of nestling blue tits (*Cyanistes caeruleus*) influenced by competition with siblings?"](https://osf.io/34fzc/).
 
 
 ## **Folders and files**
