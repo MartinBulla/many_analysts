@@ -44,8 +44,62 @@
     mou[, net_rearing_manipulation_factor := as.factor(net_rearing_manipulation)]
 
 # dataset for paired analyses
-    p = fread('Data/blue_tit_nest_pairs_IDs.csv') 
+    # dataset for paired plots
+    BT_data <- read.csv(file = "Data/blue_tit_data.csv", stringsAsFactors = FALSE)
+    BT_data_tidy <-
+      BT_data %>% 
+      # select variables of interest
+      dplyr::select(chick_ring_number, hatch_year, hatch_nest_breed_ID, rear_nest_breed_ID, rear_area, hatch_mom_Ring, 
+             genetic_dad_ring_.WP_or_EP., hatch_nest_OH, rear_nest_OH, d0_hatch_nest_brood_size, rear_d0_rear_nest_brood_size,
+             rear_nest_trt, net_rearing_manipulation, rear_Cs_at_start_of_rearing, d14_rear_nest_brood_size, 
+             day_14_tarsus_length, day_14_weight, day14_measurer, chick_sex_molec, number_chicks_fledged_from_rear_nest) %>%
+      # rename the genetic dad vaiable
+      dplyr::rename(genetic_dad_ring = genetic_dad_ring_.WP_or_EP., 
+             d0_rear_nest_brood_size = rear_d0_rear_nest_brood_size) %>% 
+      # replace all "." with NA in factor variables
+      dplyr::mutate(chick_sex_molec = as.factor(ifelse(chick_sex_molec == ".", NA, 
+                                    ifelse(chick_sex_molec == "1", "Female", "Male"))),
+             chick_BMI = day_14_weight/(day_14_tarsus_length^2)) %>%
+      dplyr::mutate_at(c("hatch_year", "hatch_nest_breed_ID", "rear_nest_breed_ID", 
+                  "day14_measurer", "rear_nest_trt", "hatch_mom_Ring", 
+                  "genetic_dad_ring", "chick_ring_number", "rear_area"), 
+                as.factor) %>% 
+      dplyr::mutate_if(is.factor, list(~dplyr::na_if(., "."))) %>% 
+      dplyr::mutate_at(c("net_rearing_manipulation", "rear_Cs_at_start_of_rearing", "d0_hatch_nest_brood_size", 
+                  "d0_rear_nest_brood_size", "number_chicks_fledged_from_rear_nest"), 
+                as.numeric) %>% 
+      # re-name the treatment groups
+      dplyr::mutate(rear_nest_trt = 
+               as.factor(ifelse(rear_nest_trt == "5", "increase", 
+                            ifelse(rear_nest_trt == "6", "decrease", "control")))) %>% 
+      dplyr::mutate(prop_change_in_brood_size = net_rearing_manipulation/d0_hatch_nest_brood_size,
+                    change_chick_n = rear_Cs_at_start_of_rearing - d14_rear_nest_brood_size)
+    BT_nest_pairs <- 
+      BT_data_tidy %>% 
+      dplyr::group_by(chick_ring_number) %>% 
+      dplyr::mutate_at(c("hatch_nest_breed_ID", "rear_nest_breed_ID"), as.character) %>% 
+      dplyr::mutate_at(c("hatch_nest_breed_ID", "rear_nest_breed_ID"), as.numeric) %>% 
+      dplyr::summarise(pair_ID_min = min(hatch_nest_breed_ID, rear_nest_breed_ID),
+                pair_ID_max = max(hatch_nest_breed_ID, rear_nest_breed_ID)) %>% 
+      dplyr::left_join(BT_data_tidy, ., by = "chick_ring_number") %>% 
+      dplyr::select(hatch_nest_breed_ID, rear_nest_breed_ID, d0_hatch_nest_brood_size,
+             d0_rear_nest_brood_size, rear_nest_trt, net_rearing_manipulation,
+             rear_Cs_at_start_of_rearing, pair_ID_min, pair_ID_max) %>%
+      dplyr::distinct() %>% 
+      dplyr::filter(pair_ID_min != pair_ID_max) %>% 
+      dplyr::mutate(pair_ID = paste(pair_ID_min, pair_ID_max, sep = "_")) %>% 
+      dplyr::select(hatch_nest_breed_ID,rear_nest_breed_ID, pair_ID)
+
+    BT_data_tidy <- 
+        BT_data_tidy %>% 
+        dplyr::left_join(., BT_nest_pairs[,c('hatch_nest_breed_ID', 'pair_ID')], by = "hatch_nest_breed_ID")
+
+    p = data.table(BT_nest_pairs)
+    p[, hatch_nest_breed_ID:= as.integer(hatch_nest_breed_ID)]
+    p[, rear_nest_breed_ID:= as.integer(rear_nest_breed_ID)]
     p = merge(a,p[,.(rear_nest_breed_ID, pair_ID)], all.x = TRUE)
     p = p[!is.na(pair_ID)]
     
+
+
 # END
