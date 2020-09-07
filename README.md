@@ -7,11 +7,11 @@ Protocols, methods, codes and results of the analysis for the 'same data differe
 
 ## **Folders and files**
 
-[Data](https://github.com/MartinBulla/many_analysts/tree/master/Data): contains data and metadata from the [project coordinators](https://osf.io/34fzc/) and an additional dataset that we have generated for the paired nest analyses using THIS AND THIS CODE
+[Data](https://github.com/MartinBulla/many_analysts/tree/master/Data): contains data and metadata from the [project coordinators](https://osf.io/34fzc/)
 
 [info_from_coordinators](https://github.com/MartinBulla/many_analysts/tree/master/info_from_coordinators): contain information for the coordinators  and mirrors the one at https://osf.io/34fzc/
 
-[MS](https://github.com/MartinBulla/many_analysts/tree/master/MS): contains html reporting documents and their respective RMarkdown (*.Rmd) files, as well as many_analysts.xml library to generate references. Specifically the folder contains:
+[MS](https://github.com/MartinBulla/many_analysts/tree/master/MS): contains html reporting documents and their respective RMarkdown (*.Rmd) files, as well as many_analysts.xml library to generate references in Methods. Specifically the folder contains:
 - [Protocol](https://raw.githack.com/MartinBulla/many_analysts/master/MS/Protocol.html): contains a priory (before data exploration) decisions about analyses 
 - [Methods](https://raw.githack.com/MartinBulla/many_analysts/master/MS/Methods.html): description of the used methods
 - [Results](https://raw.githack.com/MartinBulla/many_analysts/master/MS/Results.html): results of the analyses
