@@ -14,8 +14,9 @@ using<-function(...) {
 
 
 # load/install packages
-  packages = c('anytime','arm','data.table', 'effects', 'foreach', 'ggplot2', 'ggthemes', 'glue',  'grid','gridExtra', 'here', 'htmlTable', 'lattice', 'lubridate', 'magrittr', 'multcomp', 'performance','plyr','raster','stringr','xlsx','zoo')
+  packages = c('anytime','arm','data.table', 'effects', 'foreach', 'ggplot2', 'ggthemes', 'glue',  'grid','gridExtra', 'here', 'htmlTable', 'lattice', 'lubridate', 'magrittr', 'multcomp', 'performance','plyr','raster','stringr','xlsx','zoo', 'gt', 'tidyverse', 'ggpubr')
   sapply(packages, function(x) suppressPackageStartupMessages(using(x)) )
+
 
 # Customized ggplot theme
     theme_MB = theme(  
